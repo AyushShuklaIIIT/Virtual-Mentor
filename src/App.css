@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+.sidebar-icon {
+    @apply text-[#94a3b8] group-hover:text-[#8a5cf5] transition-colors;
+}
+
+.sidebar-active .sidebar-icon {
+    @apply text-[#8a5cf5]
+}
+
+.sidebar-active {
+    @apply text-[#7738ea] border-r-4 border-[#8a5cf5];
+}
+
+.task-item:hover .task-actions {
+    display: flex;
+}
+
+.task-actions {
+    display: none;
+}
+
+.pomodoro-progress {
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+    transition: stroke-dashoffset 1s linear;
+}
+
+@media (max-width: 768px) {
+    .sidebar-expanded {
+        transform: translateX(0);
+    }
+}
