@@ -1,0 +1,97 @@
+@import 'tailwindcss';
+
+.profile-bg {
+    font-family: 'Inter', sans-serif;
+    background-color: #f9fafc;
+}
+
+.gradient-bg {
+    background: linear-gradient(135deg, #7738ea 0%, #8a5cf5 100%);
+}
+
+.card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.badge {
+    transition: all 0.3s ease;
+}
+
+.badge:hover {
+    transform: translateY(-5px);
+}
+
+.activity-item {
+    position: relative;
+}
+
+.activity-item::before {
+    content: '';
+    position: absolute;
+    left: 16px;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background-color: #e2e8f0;
+    z-index: 0;
+}
+
+.activity-item:first-child::before {
+    top: 50%;
+}
+
+.activity-item:last-child::before {
+    height: 50%;
+}
+
+.activity-icon {
+    z-index: 1;
+    background-color: white;
+}
+
+.scroll-container {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.scroll-container::-webkit-scrollbar {
+    display: none;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease forwards;
+}
+
+.stat-card {
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: scale(1.03);
+}
+
+@media (max-width: 768px) {
+    .profile-container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}

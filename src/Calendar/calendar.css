@@ -1,0 +1,144 @@
+@import 'tailwindcss';
+
+.calendar-body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f9fafc;
+}
+
+.gradient-bg {
+    background: linear-gradient(135deg, #7738ea 0%, #8a5cf5 100%);
+}
+
+.calendar-container {
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.calendar-header {
+    background: white;
+    border-bottom: 1px solid #edf2f7;
+}
+
+.calendar-cell {
+    min-height: 100px;
+    transition: all 0.2s ease;
+    border: 1px solid #edf2f7;
+}
+
+.calendar-cell:hover {
+    background-color: #f7fafc;
+}
+
+.calendar-cell.today {
+    background-color: #f0f4ff;
+}
+
+.calendar-cell.different-month {
+    background-color: #f9fafb;
+    color: #a0aec0;
+}
+
+.task-chip {
+    border-radius: 4px;
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    margin: 2px 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.task-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.priority-high {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border-left: 3px solid #b91c1c;
+}
+
+.priority-medium {
+    background-color: #fef3c7;
+    color: #92400e;
+    border-left: 3px solid #92400e;
+}
+
+.priority-low {
+    background-color: #dcfce7;
+    color: #166534;
+    border-left: 3px solid #166534;
+}
+
+.view-toggle-btn {
+    transition: all 0.2s ease;
+}
+
+.view-toggle-btn.active {
+    background: linear-gradient(135deg, #7738ea 0%, #8a5cf5 100%);
+    color: white;
+}
+
+.modal {
+    background-color: rgba(0, 0, 0, 0.5);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 50;
+}
+
+.modal-content {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.btn {
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #7738ea 0%, #8a5cf5 100%);
+}
+
+.btn-primary:hover {
+    box-shadow: 0 4px 12px rgba(138, 92, 245, 0.3);
+}
+
+.quick-action {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.calendar-cell:hover .quick-action {
+    opacity: 1;
+}
+
+@media (max-width: 768px) {
+    .calendar-cell {
+        min-height: 80px;
+    }
+
+    .calendar-day-name {
+        font-size: 0.75rem;
+    }
+
+    .task-chip {
+        font-size: 0.65rem;
+        padding: 1px 4px;
+    }
+}
