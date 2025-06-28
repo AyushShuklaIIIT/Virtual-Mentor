@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faRobot, faLightbulb, faRefresh, faTimes, faExclamationTriangle, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
+import { faRobot, faLightbulb, faRefresh, faTimes, faExclamationTriangle, faPlay } from '@fortawesome/free-solid-svg-icons';
 import taskService from '../api/taskService'
 
 const AISuggestions = () => {
@@ -9,16 +9,18 @@ const AISuggestions = () => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [hasRequestedSuggestions, setHasRequestedSuggestions] = useState(false);
 
   const fetchSuggestions = async () => {
     setLoading(true);
     setError(null);
+    setHasRequestedSuggestions(true);
     
     try {
       const response = await taskService.getSuggestions();
       
       // Handle the response format where suggestions is a string
-      if (response && response.suggestions) {
+      if (response?.suggestions) {
         setSuggestions(response.suggestions);
         setLastUpdated(new Date().toLocaleTimeString());
       } else {
@@ -37,10 +39,6 @@ const AISuggestions = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchSuggestions();
-  }, []);
 
   if (isMinimized) {
     return (
@@ -81,14 +79,16 @@ const AISuggestions = () => {
           </div>
         </div>
         <div className='flex items-center space-x-2'>
-          <button 
-            onClick={fetchSuggestions}
-            disabled={loading}
-            className='text-gray-500 hover:text-purple-600 transition-colors disabled:opacity-50'
-            title="Get new suggestion"
-          >
-            <FontAwesomeIcon icon={faRefresh} className={loading ? 'animate-spin' : ''} />
-          </button>
+          {suggestions && (
+            <button 
+              onClick={fetchSuggestions}
+              disabled={loading}
+              className='text-gray-500 hover:text-purple-600 transition-colors disabled:opacity-50'
+              title="Get new suggestion"
+            >
+              <FontAwesomeIcon icon={faRefresh} className={loading ? 'animate-spin' : ''} />
+            </button>
+          )}
           <button 
             onClick={() => setIsMinimized(true)}
             className='text-gray-500 hover:text-gray-700 transition-colors'
@@ -142,15 +142,31 @@ const AISuggestions = () => {
           </div>
         </div>
       ) : (
+        // Initial state with prominent Get Suggestions button
         <div className='flex flex-col items-center justify-center py-8 text-center'>
-          <FontAwesomeIcon icon={faInfoCircle} className='text-gray-400 text-2xl mb-2' />
-          <p className='text-gray-600 text-sm'>No suggestions available</p>
+          <div className='w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4'>
+            <FontAwesomeIcon icon={faLightbulb} className='text-purple-600 text-2xl' />
+          </div>
+          <h4 className='font-medium text-gray-800 mb-2'>Ready for AI Insights?</h4>
+          <p className='text-gray-600 text-sm mb-4 max-w-xs'>
+            Get personalized suggestions to improve your productivity and task management
+          </p>
           <button 
             onClick={fetchSuggestions}
-            className='mt-2 text-purple-600 hover:text-purple-800 text-sm font-medium'
+            disabled={loading}
+            className='flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium'
           >
-            Request New Suggestion
+            <FontAwesomeIcon 
+              icon={faPlay} 
+              className={`text-sm ${loading ? 'animate-spin' : ''}`} 
+            />
+            <span>{loading ? 'Getting Suggestions...' : 'Get AI Suggestions'}</span>
           </button>
+          {hasRequestedSuggestions && !loading && !suggestions && !error && (
+            <p className='text-gray-500 text-xs mt-3'>
+              No suggestions available at the moment
+            </p>
+          )}
         </div>
       )}
     </div>

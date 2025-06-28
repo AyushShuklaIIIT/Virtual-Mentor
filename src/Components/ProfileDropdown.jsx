@@ -46,7 +46,7 @@ const ProfileDropdown = () => {
       console.log('User info response:', data);
 
       // Handle the API response format: { name: "Name", email: "example@gmail.com" }
-      if (data && data.name && typeof data.name === 'string') {
+      if (typeof data?.name === 'string') {
         const name = data.name.trim();
         const email = data.email || '';
         const initials = getInitials(name);
@@ -88,7 +88,6 @@ const ProfileDropdown = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Load user info on mount
   useEffect(() => {
     fetchUserInfo();
   }, [fetchUserInfo]);

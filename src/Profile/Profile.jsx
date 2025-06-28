@@ -288,6 +288,7 @@ const Profile = () => {
         <main className='flex-grow p-4 md:p-6'>
           <div className='max-w-4xl mx-auto profile-container'>
             {/* Top Section - User Profile */}
+            <h1 className='mb-2 text-center text-red-500 text-xl font-bold '>Demo data for profile page (to be replaced with actual user data)</h1>
             <div className='card p-6 mb-6 fade-in'>
               <div className='flex flex-col md:flex-row'>
                 {/* Profile Picture and Basic Info */}

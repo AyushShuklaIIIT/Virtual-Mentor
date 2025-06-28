@@ -14,7 +14,6 @@ import AINav from "./AI/AINav";
 function App() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
-  // ✅ Capture PWA install prompt
   useEffect(() => {
     window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();
@@ -23,7 +22,6 @@ function App() {
     });
   }, []);
 
-  // ✅ Handle manual PWA installation
   const handleInstallClick = () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();
@@ -38,7 +36,6 @@ function App() {
     }
   };
 
-  // ✅ Router setup with all your friend’s routes included
   const router = createBrowserRouter([
     { path: "/", element: <HomePage /> },
     { path: "/dashboard", element: <Dashboard /> },
@@ -49,7 +46,7 @@ function App() {
     { path: "/insights", element: <InsightNav /> },
     { path: "/settings", element: <SettingsNav /> },
     { path: "/profile", element: <Profile /> },
-    { path: "/ai-suggestions", element: <AINav /> }, // ✅ Friend’s AI page included
+    { path: "/ai-suggestions", element: <AINav /> },
   ]);
 
   return (

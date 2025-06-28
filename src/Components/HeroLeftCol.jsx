@@ -18,14 +18,14 @@ const HeroLeftCol = () => {
       </p>
 
       <div className='flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4'>
-        <NavLink to="/dashboard" className='px-8 py-4 bg-[#0068c6] text-white rounded-lg hover:bg-[#0054a1] transition-colors text-center font-medium'>Get Started</NavLink>
-        <NavLink to="/calendar" className='px-8 py-4 bg-white text-gray-800 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center font-medium flex justify-center items-center'>
+        <NavLink to="/signup" className='px-8 py-4 bg-[#0068c6] text-white rounded-lg hover:bg-[#0054a1] transition-colors text-center font-medium'>Get Started</NavLink>
+        <a href="https://youtu.be/4AaJcxU-n-I?si=XyXY9oSlJGK9xOG9" className='px-8 py-4 bg-white text-gray-800 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center font-medium flex justify-center items-center' target='_blank' rel='noopener noreferrer'>
           <svg xmlns="http://www.w3.org/2000/svg" className='h-5 w-5 mr-2 text-[#0068c6]' fill='none' viewBox='0 0 24 24' stroke="currentColor">
             <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d="M10 9.75L15 12L10 14.25V9.75Z" />
             <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           See Demo
-        </NavLink>
+        </a>
       </div>
 
       <div className='mt-10 flex items-center space-x-6'>
