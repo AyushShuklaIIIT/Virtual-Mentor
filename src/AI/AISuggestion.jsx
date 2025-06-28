@@ -7,20 +7,66 @@ import taskService from '../api/taskService';
 import HamburgerIcon from '../SVGs/HamburgerIcon';
 
 const AISuggestion = ({ onOpenSidebar }) => {
-  // State management
+  const STORAGE_KEYS = {
+    PREVIOUS_SUGGESTIONS: 'ai_previous_suggestions',
+    HAS_INITIALIZED: 'ai_has_initialized'
+  };
+
+  const loadPreviousSuggestions = useCallback(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.PREVIOUS_SUGGESTIONS);
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error('Error loading previous suggestions:', error);
+      return [];
+    }
+  }, []);
+
+  const savePreviousSuggestions = useCallback((suggestions) => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.PREVIOUS_SUGGESTIONS, JSON.stringify(suggestions));
+    } catch (error) {
+      console.error('Error saving previous suggestions:', error);
+    }
+  }, []);
+
+  const loadInitializationState = useCallback(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.HAS_INITIALIZED);
+      return stored === 'true';
+    } catch (error) {
+      console.error('Error loading initialization state:', error);
+      return false;
+    }
+  }, []);
+
+  const saveInitializationState = useCallback((state) => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.HAS_INITIALIZED, state.toString());
+    } catch (error) {
+      console.error('Error saving initialization state:', error);
+    }
+  }, []);
+
   const [currentSuggestion, setCurrentSuggestion] = useState('');
-  const [previousSuggestions, setPreviousSuggestions] = useState([]);
+  const [previousSuggestions, setPreviousSuggestions] = useState(loadPreviousSuggestions);
   
-  const [isLoading, setIsLoading] = useState(false); // Changed: No initial loading
+  const [isLoading, setIsLoading] = useState(false);
   const [isLoadingNew, setIsLoadingNew] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [isAddingToNotes, setIsAddingToNotes] = useState(false);
   const [error, setError] = useState(null);
   const [hasData, setHasData] = useState(false);
-  const [hasInitialized, setHasInitialized] = useState(false); // New: Track if user has started
+  const [hasInitialized, setHasInitialized] = useState(loadInitializationState);
 
   // Memoized values
   const toggleButtonText = useMemo(() => showHistory ? 'Hide' : 'Show', [showHistory]);
+
+  // Truncate text for display
+  const truncateText = useCallback((text, maxLength = 120) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength).trim() + '...';
+  }, []);
 
   // Get formatted timestamp
   const getFormattedTimestamp = useCallback(() => {
@@ -45,6 +91,15 @@ const AISuggestion = ({ onOpenSidebar }) => {
     }
   }, []);
 
+  // Update previous suggestions and save to localStorage
+  const updatePreviousSuggestions = useCallback((updateFn) => {
+    setPreviousSuggestions(prev => {
+      const newSuggestions = updateFn(prev);
+      savePreviousSuggestions(newSuggestions);
+      return newSuggestions;
+    });
+  }, [savePreviousSuggestions]);
+
   // Fetch suggestions from API
   const fetchSuggestions = useCallback(async (isRetry = false, showTyping = true) => {
     try {
@@ -63,7 +118,11 @@ const AISuggestion = ({ onOpenSidebar }) => {
         const suggestionText = response.suggestions.trim();
         setCurrentSuggestion(suggestionText);
         setHasData(true);
-        setHasInitialized(true);
+        
+        if (!hasInitialized) {
+          setHasInitialized(true);
+          saveInitializationState(true);
+        }
       } else {
         throw new Error('Invalid response format from server');
       }
@@ -77,9 +136,8 @@ const AISuggestion = ({ onOpenSidebar }) => {
       setIsLoading(false);
       setIsLoadingNew(false);
     }
-  }, []);
+  }, [hasInitialized, saveInitializationState]);
 
-  // Initial suggestion fetch (manual trigger)
   const getFirstSuggestion = useCallback(async () => {
     await fetchSuggestions(false, true);
   }, [fetchSuggestions]);
@@ -96,12 +154,12 @@ const AISuggestion = ({ onOpenSidebar }) => {
         id: Date.now()
       };
 
-      setPreviousSuggestions(prev => [newSuggestion, ...prev.slice(0, 9)]); // Keep only last 10
+      updatePreviousSuggestions(prev => [newSuggestion, ...prev.slice(0, 9)]); // Keep only last 10
     }
 
     // Fetch new suggestion
     await fetchSuggestions(true, false);
-  }, [currentSuggestion, fetchSuggestions, getFormattedTimestamp, isLoadingNew, isLoading]);
+  }, [currentSuggestion, fetchSuggestions, getFormattedTimestamp, isLoadingNew, isLoading, updatePreviousSuggestions]);
 
   // Toggle history visibility
   const toggleHistory = useCallback(() => {
@@ -122,7 +180,7 @@ const AISuggestion = ({ onOpenSidebar }) => {
       addedToNotes: true
     };
 
-    setPreviousSuggestions(prev => {
+    updatePreviousSuggestions(prev => {
       // Check if this suggestion is already in history
       const exists = prev.some(s => s.text === currentSuggestion);
       if (exists) {
@@ -142,15 +200,17 @@ const AISuggestion = ({ onOpenSidebar }) => {
     setTimeout(() => {
       setIsAddingToNotes(false);
     }, 2000);
-  }, [currentSuggestion, getFormattedTimestamp, isAddingToNotes]);
+  }, [currentSuggestion, getFormattedTimestamp, isAddingToNotes, updatePreviousSuggestions]);
+
+  // Clear all previous suggestions
+  const clearHistory = useCallback(() => {
+    updatePreviousSuggestions(() => []);
+  }, [updatePreviousSuggestions]);
 
   // Retry fetching suggestions
   const retrySuggestions = useCallback(() => {
     fetchSuggestions(true, true);
   }, [fetchSuggestions]);
-
-  // Removed automatic initial load - component now starts in idle state
-  // No useEffect for automatic fetching
 
   // Loading component
   const LoadingDots = () => (
@@ -242,9 +302,10 @@ const AISuggestion = ({ onOpenSidebar }) => {
 
         {/* Main Suggestion Card */}
         <div className='suggestion-container mb-8 relative'>
-          <div className='flex items-center justify-center mb-6'>
+          {/* AI Avatar - Mobile: Above, Desktop: Left */}
+          <div className='flex flex-col md:flex-row items-center justify-center mb-6'>
             {/* AI Avatar */}
-            <div className='relative mr-4'>
+            <div className='relative mb-4 md:mb-0 md:mr-4 order-1 md:order-1'>
               <div className='w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-purple-400 to-indigo-600 flex items-center justify-center'>
                 <FontAwesomeIcon icon={faLightbulb} className='h-6 w-6 md:h-8 md:w-8 text-white' />
               </div>
@@ -254,7 +315,7 @@ const AISuggestion = ({ onOpenSidebar }) => {
             </div>
 
             {/* Suggestion Text */}
-            <div className='suggestion-card glass rounded-2xl p-6 md:p-8 w-full max-w-2xl shadow-lg'>
+            <div className='suggestion-card glass rounded-2xl p-6 md:p-8 w-full max-w-2xl shadow-lg order-2 md:order-2'>
               {!hasInitialized ? (
                 <WelcomeDisplay />
               ) : isLoading ? (
@@ -327,15 +388,24 @@ const AISuggestion = ({ onOpenSidebar }) => {
                 <FontAwesomeIcon icon={faClock} className='h-5 w-5 text-purple-600 mr-2' />
                 Previous Suggestions ({previousSuggestions.length})
               </h2>
-              <button
-                onClick={toggleHistory}
-                className='toggle-button text-sm text-purple-600 hover:text-purple-800 transition-colors'
-              >
-                <span>{toggleButtonText}</span>
-                <svg xmlns='http://www.w3.org/2000/svg' className={`h-4 w-4 inline ml-1 transition-transform duration-200 ${showHistory ? 'rotate-180' : ''}`} fill='none' viewBox='0 0 24 24' stroke="currentColor">
-                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
-                </svg>
-              </button>
+              <div className='flex items-center gap-2'>
+                <button
+                  onClick={clearHistory}
+                  className='text-xs text-red-500 hover:text-red-700 transition-colors px-2 py-1 rounded'
+                  title="Clear all history"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={toggleHistory}
+                  className='toggle-button text-sm text-purple-600 hover:text-purple-800 transition-colors'
+                >
+                  <span>{toggleButtonText}</span>
+                  <svg xmlns='http://www.w3.org/2000/svg' className={`h-4 w-4 inline ml-1 transition-transform duration-200 ${showHistory ? 'rotate-180' : ''}`} fill='none' viewBox='0 0 24 24' stroke="currentColor">
+                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div className={`history-container transition-all duration-300 overflow-hidden ${
@@ -345,9 +415,11 @@ const AISuggestion = ({ onOpenSidebar }) => {
                 {previousSuggestions.map((suggestion, index) => (
                   <div key={suggestion.id} className={`timeline-item relative mb-4 glass rounded-lg p-4 suggestion-card slide-in ${suggestion.addedToNotes ? 'border-l-4 border-purple-500' : ''}`} style={{animationDelay: `${index * 0.1}s`}}>
                     <div className='flex items-start justify-between'>
-                      <p className='text-gray-700 flex-1'>"{suggestion.text}"</p>
+                      <p className='text-gray-700 flex-1 suggestion-text' title={suggestion.text}>
+                        "{truncateText(suggestion.text)}"
+                      </p>
                       {suggestion.addedToNotes && (
-                        <span className='ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full'>
+                        <span className='ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full whitespace-nowrap'>
                           Added to notes
                         </span>
                       )}

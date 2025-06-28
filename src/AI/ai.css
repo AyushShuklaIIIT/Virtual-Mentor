@@ -55,10 +55,6 @@
     }
 }
 
-.slide-in {
-    animation: slideIn 0.5s ease-out forwards;
-}
-
 /* Enhanced typing dots */
 .typing-dots {
     display: flex;
@@ -148,26 +144,6 @@
     transform: translateY(-1px);
 }
 
-/* Pulse animation for AI avatar */
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(1.1);
-        opacity: 0.8;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-.pulse {
-    animation: pulse 2s infinite;
-}
-
 /* Error container styles */
 .error-container {
     background: rgba(254, 243, 199, 0.5);
@@ -201,41 +177,6 @@
     border-radius: inherit;
 }
 
-/* Added to notes indicator */
-.timeline-item.border-l-4 {
-    border-left: 4px solid #7c3aed;
-    background: rgba(124, 58, 237, 0.02);
-}
-
-/* Responsive improvements */
-@media (max-width: 768px) {
-    .action-button {
-        font-size: 0.875rem;
-        padding: 0.5rem 0.75rem;
-    }
-    
-    .suggestion-card {
-        padding: 1rem 1.5rem;
-    }
-    
-    .timeline {
-        padding-left: 1.5rem;
-    }
-    
-    .timeline-item::before {
-        left: -19px;
-    }
-}
-
-/* Smooth transitions for state changes */
-.transition-opacity {
-    transition: opacity 0.5s ease;
-}
-
-.transition-all {
-    transition: all 0.3s ease;
-}
-
 /* Enhanced suggestion container */
 .suggestion-container {
     position: relative;
@@ -250,26 +191,91 @@
     outline-offset: 2px;
 }
 
-/* Loading state improvements */
-.action-button:disabled {
-    transition: opacity 0.2s ease;
+.get-started-button:focus {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
 }
 
-/* Enhanced glass effect */
-.glass::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
-    pointer-events: none;
+@media (max-width: 768px) {
+  .action-button {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .suggestion-card {
+    padding: 1rem 1.5rem;
+  }
+  
+  .timeline {
+    padding-left: 1.5rem;
+  }
+  
+  .timeline-item::before {
+    left: -19px;
+  }
+
+  .suggestion-container .flex {
+    flex-direction: column;
+  }
+  
+  .suggestion-container .relative {
+    margin-bottom: 1rem;
+    margin-right: 0;
+  }
+
+  .welcome-container {
+    padding: 1rem 1.5rem;
+  }
+  
+  .welcome-container h3 {
+    font-size: 1.125rem;
+  }
+  
+  .welcome-container .get-started-button {
+    font-size: 0.875rem;
+    padding: 0.75rem 1.5rem;
+  }
 }
 
-/* Rotate animation for toggle button */
-.rotate-180 {
-    transform: rotate(180deg);
+@media (min-width: 769px) {
+  .suggestion-container .flex {
+    flex-direction: row;
+  }
+  
+  .suggestion-container .relative {
+    margin-bottom: 0;
+    margin-right: 1rem;
+  }
 }
 
+.suggestion-text {
+  line-height: 1.5;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.clear-history-btn {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+}
+
+.clear-history-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Welcome container responsive */
+.welcome-container {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.05), rgba(79, 70, 229, 0.05));
+  border: 1px solid rgba(124, 58, 237, 0.1);
+  border-radius: 16px;
+}
+
+/* Get Started Button */
 .get-started-button {
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
@@ -284,14 +290,27 @@
   transform: translateY(0);
 }
 
-/* Welcome container */
-.welcome-container {
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.05), rgba(79, 70, 229, 0.05));
-  border: 1px solid rgba(124, 58, 237, 0.1);
-  border-radius: 16px;
+/* Pulse animation for AI avatar */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
-/* Different status colors for avatar indicator */
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+/* Avatar status indicators */
 .bg-blue-400 {
   background-color: #60a5fa; /* Ready state */
 }
@@ -305,7 +324,83 @@
 }
 
 /* Enhanced focus states */
-.get-started-button:focus {
+.get-started-button:focus,
+.action-button:focus,
+.toggle-button:focus,
+.retry-button:focus {
   outline: 2px solid #7c3aed;
   outline-offset: 2px;
+}
+
+/* Timeline item enhancements */
+.timeline-item.border-l-4 {
+  border-left: 4px solid #7c3aed;
+  background: rgba(124, 58, 237, 0.02);
+}
+
+/* History controls */
+.history-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Responsive text sizes */
+@media (max-width: 640px) {
+  .suggestion-text {
+    font-size: 0.875rem;
+  }
+  
+  .timeline-item {
+    padding: 0.75rem;
+  }
+}
+
+/* Smooth transitions */
+.transition-opacity {
+  transition: opacity 0.5s ease;
+}
+
+.transition-all {
+  transition: all 0.3s ease;
+}
+
+.rotate-180 {
+  transform: rotate(180deg);
+}
+
+/* Loading states */
+.action-button:disabled {
+  transition: opacity 0.2s ease;
+}
+
+/* Glass effect enhancements */
+.glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+  pointer-events: none;
+}
+
+/* Enhanced slide-in animation */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.slide-in {
+  animation: slideIn 0.5s ease-out forwards;
+}
+
+/* Tooltip for truncated text */
+.suggestion-text[title]:hover {
+  cursor: help;
 }
