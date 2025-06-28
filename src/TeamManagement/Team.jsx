@@ -4,6 +4,7 @@ import Icon from '../SVGs/Icon'
 import { NavLink } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEllipsisV, faSearch, faTasks, faTimes, faUser, faUserMinus, faUserPlus, faUserTag } from '@fortawesome/free-solid-svg-icons'
+import ProfileDropdown from '../Components/ProfileDropdown'
 
 const TEAM_MEMBERS = [
   {
@@ -361,9 +362,7 @@ const Team = () => {
 
             {/* Profile */}
             <div className='flex items-center space-x-4'>
-              <NavLink to="/profile" className='w-9 h-9 bg-gray-200 rounded-full flex items-center justify-center cursor-pointer'>
-                <span className='text-gray-700 font-medium'>JD</span>
-              </NavLink>
+              <ProfileDropdown />
             </div>
           </div>
         </header>

@@ -17,6 +17,7 @@ import { faCopyright } from '@fortawesome/free-regular-svg-icons';
 import './settings.css';
 import HamburgerIcon from '../SVGs/HamburgerIcon';
 import { NavLink } from 'react-router-dom';
+import ProfileDropdown from '../Components/ProfileDropdown';
 
 /** Section Card with collapsible functionality */
 const Section = ({ icon, iconClass, title, children, defaultCollapsed = false }) => {
@@ -150,9 +151,7 @@ const Settings = ({ onOpenSidebar }) => {
                             </button>
                         </div>
                         <div className='flex items-center'>
-                            <NavLink to="/profile" className='w-9 h-9 bg-gray-200 rounded-full flex items-center justify-center cursor-pointer'>
-                                <span className='text-gray-700 font-medium'>JD</span>
-                            </NavLink>
+                            <ProfileDropdown />
                         </div>
                     </div>
                 </header>

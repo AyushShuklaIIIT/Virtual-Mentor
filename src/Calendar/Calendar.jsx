@@ -6,6 +6,7 @@ import HamburgerIcon from '../SVGs/HamburgerIcon';
 import { NavLink } from 'react-router-dom';
 import taskService from '../api/taskService';
 import { toast } from 'react-toastify';
+import ProfileDropdown from '../Components/ProfileDropdown';
 
 const formatDate = (date) => {
     const year = date.getFullYear();
@@ -274,9 +275,7 @@ const Calendar = ({ onOpenSidebar }) => {
                     <FontAwesomeIcon icon={faPlus} />
                     <span className='ml-2'>Add Task</span>
                 </button>
-                <NavLink to="/profile" className='w-9 h-9 bg-gray-200 rounded-full flex items-center justify-center cursor-pointer'>
-                    <span className='text-gray-700 font-medium'>JD</span>
-                </NavLink>
+                <ProfileDropdown />
             </header>
 
             {/* --- Calendar Controls --- */}
