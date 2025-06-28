@@ -170,9 +170,9 @@ const taskService = {
 
   toggleTaskCompletion: async (taskId, isCompleted) => {
     try {
-      const taskData = { is_completed: isCompleted };
+      const taskData = { isCompleted: isCompleted };
       
-      const response = await fetch(`${API_BASE_URL}/task/update/${taskId}`, {
+      const response = await fetch(`${API_BASE_URL}/task/updateStatus/${taskId}`, {
         method: 'PATCH',
         headers: getHeaders(),
         credentials: 'include',

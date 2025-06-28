@@ -15,12 +15,24 @@ const productivityScore = 0.85;
 const allCategories = ['Work', 'Personal', 'Health', 'Urgent'];
 const allHours = [6, 8, 10, 12, 14, 16, 18, 20, 22];
 
+// Transform backend task object to match frontend expectations
+const transformTask = (task) => ({
+    ...task,
+    completed: task.is_completed,
+    completedAt: task.completed_at,
+    dueDate: task.duedate,
+    createdAt: task.created_at,
+    // For time-based analysis, use created_at if no other time is available
+    time: task.duedate || task.created_at
+});
+
 function normalizeToLocalDate(date) {
     if (!date) return null;
     const d = new Date(date);
     d.setHours(0,0,0,0);
     return d;
 }
+
 function isDateInRange(taskDate, startDate, endDate) {
     const d = normalizeToLocalDate(taskDate);
     const s = normalizeToLocalDate(startDate);
@@ -71,20 +83,6 @@ const getCategoryFromTag = tag => {
     return 'Work';
 }
 
-const getHourFromTime = time => {
-    if (!time) return 8;
-    
-    // If it's a date string with time, extract the hour
-    if (typeof time === 'string' && time.includes('T')) {
-        const date = new Date(time);
-        return date.getHours();
-    }
-
-    // If it's a simple time string like "14:30"
-    const parts = time.split(':');
-    return parseInt(parts[0], 10);
-}
-
 const goals = [
     {
         title: "Complete 50 work tasks this month",
@@ -118,6 +116,7 @@ const Insights = ({ onOpenSidebar }) => {
     const [overdueChange, setOverdueChange] = useState(0);
 
     const [allTasks, setAllTasks] = useState([]);
+    const [transformedTasks, setTransformedTasks] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -127,7 +126,12 @@ const Insights = ({ onOpenSidebar }) => {
         setError(null);
         try {
             const data = await taskService.getAllTasks();
-            setAllTasks(Array.isArray(data) ? data : []);
+            const tasksArray = Array.isArray(data) ? data : [];
+            setAllTasks(tasksArray);
+            
+            // Transform tasks to match frontend expectations
+            const transformed = tasksArray.map(transformTask);
+            setTransformedTasks(transformed);
         } catch (err) {
             console.error('Error fetching tasks for insights:', err);
             setError('Failed to load task data. Please try again.');
@@ -144,7 +148,7 @@ const Insights = ({ onOpenSidebar }) => {
 
     // Calculate metrics when date range or tasks change
     useEffect(() => {
-        if (loading || error || allTasks.length === 0) return;
+        if (loading || error || transformedTasks.length === 0) return;
         
         const days = Math.floor((normalizeToLocalDate(dateRange.endDate) - normalizeToLocalDate(dateRange.startDate)) / (1000 * 60 * 60 * 24)) + 1;
         const prevEnd = new Date(normalizeToLocalDate(dateRange.startDate));
@@ -152,13 +156,13 @@ const Insights = ({ onOpenSidebar }) => {
         const prevStart = new Date(prevEnd);
         prevStart.setDate(prevStart.getDate() - (days - 1));
 
-        const currCompleted = allTasks.filter(t => {
+        const currCompleted = transformedTasks.filter(t => {
             return t.completed &&
                 t.completedAt &&
                 isDateInRange(t.completedAt, dateRange.startDate, dateRange.endDate)
         }).length;
 
-        const prevCompleted = allTasks.filter(t => {
+        const prevCompleted = transformedTasks.filter(t => {
             return t.completed &&
                 t.completedAt &&
                 isDateInRange(t.completedAt, prevStart, prevEnd);
@@ -181,14 +185,14 @@ const Insights = ({ onOpenSidebar }) => {
 
         const now = new Date();
         now.setHours(0,0,0,0);
-        const currOverdue = allTasks.filter(t =>
+        const currOverdue = transformedTasks.filter(t =>
             !t.completed &&
             t.dueDate &&
             isDateInRange(t.dueDate, dateRange.startDate, dateRange.endDate) &&
             normalizeToLocalDate(new Date(t.dueDate)) < now
         ).length;
 
-        const prevOverdue = allTasks.filter(t =>
+        const prevOverdue = transformedTasks.filter(t =>
             !t.completed &&
             t.dueDate &&
             isDateInRange(t.dueDate, prevStart, prevEnd) &&
@@ -205,10 +209,10 @@ const Insights = ({ onOpenSidebar }) => {
                     ? 100
                     : (((currOverdue - prevOverdue) / prevOverdue) * 100).toFixed(0)) + "%"
         );
-    }, [dateRange.endDate, dateRange.startDate, allTasks, loading, error]);
+    }, [dateRange.endDate, dateRange.startDate, transformedTasks, loading, error]);
 
     // If loading or error, don't calculate filtered tasks
-    const filteredTasks = loading || error ? [] : allTasks.filter(t => {
+    const filteredTasks = loading || error ? [] : transformedTasks.filter(t => {
         const dueInRange = t.dueDate && isDateInRange(t.dueDate, dateRange.startDate, dateRange.endDate);
         const completedInRange = t.completed && t.completedAt && isDateInRange(t.completedAt, dateRange.startDate, dateRange.endDate);
         return dueInRange || completedInRange;
@@ -293,8 +297,16 @@ const Insights = ({ onOpenSidebar }) => {
             if (t.completed && t.completedAt) {
                 const d = normalizeToLocalDate(new Date(t.completedAt));
                 if (isDateInRange(d, dateRange.startDate, dateRange.endDate)) {
-                    // Extract hour from completedAt or time property
-                    const hour = t.dueDate ? new Date(t.dueDate).getHours() : getHourFromTime(t.time);
+                    // Extract hour from completedAt, dueDate, or createdAt
+                    let hour = 8; // default
+                    if (t.completedAt) {
+                        hour = new Date(t.completedAt).getHours();
+                    } else if (t.dueDate) {
+                        hour = new Date(t.dueDate).getHours();
+                    } else if (t.createdAt) {
+                        hour = new Date(t.createdAt).getHours();
+                    }
+                    
                     const slot = allHours.reduce((prev, curr) => Math.abs(curr - hour) < Math.abs(prev - hour) ? curr : prev, allHours[0]);
                     hourCounts[slot]++;
                 }
@@ -311,7 +323,7 @@ const Insights = ({ onOpenSidebar }) => {
     };
 
     // Stats
-    const streak = loading || error ? 0 : getStreak(allTasks);
+    const streak = loading || error ? 0 : getStreak(transformedTasks);
     const dailyAvg = loading || error ? 0 : (
         filteredTasks.filter(t => t.completed && t.completedAt && isDateInRange(t.completedAt, dateRange.startDate, dateRange.endDate)
         ).length / ((normalizeToLocalDate(dateRange.endDate) - normalizeToLocalDate(dateRange.startDate)) / 86400000 + 1)
@@ -570,22 +582,24 @@ const Insights = ({ onOpenSidebar }) => {
     const handleDateRangeChange = useCallback((range) => setDateRange(range), []);
 
     // Calculate achievements based on task data
-    const completedTasks = !loading && !error ? allTasks.filter(t => t.completed && t.completedAt) : [];
+    const completedTasks = !loading && !error ? transformedTasks.filter(t => t.completed && t.completedAt) : [];
     const earlyBirdCount = !loading && !error ? completedTasks.filter(t => {
-        const date = new Date(t.completedAt || t.dueDate);
+        const date = new Date(t.completedAt || t.dueDate || t.createdAt);
         return date && date.getHours() < 10;
     }).length : 0;
     
     const dailyCounts = {};
     if (!loading && !error) {
         completedTasks.forEach(t => {
-            const d = normalizeToLocalDate(new Date(t.completedAt)).toDateString();
-            dailyCounts[d] = (dailyCounts[d] || 0) + 1;
+            if (t.completedAt) {
+                const d = normalizeToLocalDate(new Date(t.completedAt)).toDateString();
+                dailyCounts[d] = (dailyCounts[d] || 0) + 1;
+            }
         });
     }
     
     const maxTasksInADay = !loading && !error ? Math.max(0, ...Object.values(dailyCounts)) : 0;
-    const perfectWeek = !loading && !error ? isPerfectWeek(allTasks) : false;
+    const perfectWeek = !loading && !error ? isPerfectWeek(transformedTasks) : false;
     const completedCount = completedTasks.length;
     
     const achievements = [
@@ -976,4 +990,4 @@ const Insights = ({ onOpenSidebar }) => {
     );
 }
 
-export default Insights
+export default Insights;
