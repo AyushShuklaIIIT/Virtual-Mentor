@@ -1,0 +1,118 @@
+@import 'tailwindcss';
+
+.inter-text {
+    font-family: "Inter", sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+}
+
+.bg-signup {
+    background: linear-gradient(135deg, #f5f7ff 0%, #ffffff 100%);
+    min-height: 100vh;
+}
+
+.gradient-bg {
+    background: linear-gradient(135deg, #7738ea 0%, #8a5cf5 100%);
+}
+
+.form-container {
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    z-index: 1;
+}
+
+.input-field {
+    transition: all 0.3s ease;
+    border: 1px solid #e2e8f0;
+}
+
+.input-field:focus {
+    border-color: #8a5cf5;
+    box-shadow: 0 0 0 3px rgba(138, 92, 245, 0.2);
+}
+
+
+.signup-btn, .login-btn {
+    transition: all 0.3s ease;
+}
+
+.signup-btn:hover, .login-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(138, 92, 245, 0.3);
+}
+
+.geometric-bg {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    opacity: 0.4;
+    overflow: hidden;
+}
+
+.geometric-shape {
+    position: absolute;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #7738ea, #8a5cf5);
+    opacity: 0.1;
+}
+
+.feature-icon {
+    transition: all 0.3s ease;
+}
+
+.feature-icon:hover {
+    transform: translateY(-5px);
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+
+    100% {
+        transform: translateY(0px);
+    }
+}
+
+.floating {
+    animation: float 6s ease-in-out infinite;
+}
+
+.social-btn {
+    transition: all 0.2s ease;
+}
+
+.social-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: #94a3b8;
+}
+
+.divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.divider::before {
+    margin-right: 1em;
+}
+
+.divider::after {
+    margin-left: 1em;
+}
