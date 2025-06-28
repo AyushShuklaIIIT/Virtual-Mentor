@@ -2,6 +2,7 @@ import React from 'react'
 import NotificationBell from '../SVGs/NotificationBell'
 import HamburgerIcon from '../SVGs/HamburgerIcon'
 import { NavLink } from 'react-router-dom'
+import ProfileDropdown from '../Components/ProfileDropdown'
 
 const TopBar = ({onOpenSidebar}) => {
   return (
@@ -25,9 +26,7 @@ const TopBar = ({onOpenSidebar}) => {
             </button>
 
             <div className='relative'>
-            <NavLink to="/profile" className='w-8 h-8 rounded-full bg-purple-200 flex items-center justify-center text-[#6627cc] font-medium'>
-                JD
-            </NavLink>
+            <ProfileDropdown></ProfileDropdown>
             </div>
         </div>
     </header>
