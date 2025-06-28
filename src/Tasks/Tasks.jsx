@@ -3,7 +3,7 @@ import './tasks.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faCalendar, faCheck, faChevronDown, faClock, faPencil, faPlus,
-  faSearch, faTimes, faTrash, faUndo
+  faSearch, faTimes, faTrash, faUndo, faSpinner
 } from '@fortawesome/free-solid-svg-icons';
 import HamburgerIcon from '../SVGs/HamburgerIcon';
 import { NavLink } from 'react-router-dom';
@@ -61,12 +61,28 @@ const formatTimeForDisplay = dateString => {
   }
 };
 
-// Using only API property names throughout the component
+const transformTask = (task) => ({
+  ...task,
+  // Ensure we have both formats for compatibility
+  completed: task.is_completed,
+  completedAt: task.completed_at,
+  dueDate: task.duedate,
+  createdAt: task.created_at,
+  // Keep original backend properties
+  is_completed: task.is_completed,
+  completed_at: task.completed_at,
+  duedate: task.duedate,
+  created_at: task.created_at
+});
+
+
 const TaskCard = ({ task, onToggleComplete, onEdit, onDelete }) => {
   const tag = task.tag || '';
   const priority = task.priority || '';
   const duedate = task.duedate || '';
   const is_completed = task.is_completed || false;
+  const title = task.title || '';
+  const description = task.description || '';
 
   return (
     <div className={`task-card p-4 priority-${priority} ${is_completed ? 'opacity-50' : ''} fade-in`}>
@@ -74,21 +90,26 @@ const TaskCard = ({ task, onToggleComplete, onEdit, onDelete }) => {
         <div className="flex-grow pr-4">
           <div className="flex items-center mb-1">
             <h3 className={`font-medium text-gray-800 ${is_completed ? 'line-through' : ''}`}>
-              {task.title}
+              {title}
             </h3>
           </div>
+          {description && (
+            <p className={`text-sm text-gray-600 mb-2 ${is_completed ? 'line-through' : ''}`}>
+              {description}
+            </p>
+          )}
           <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 mb-2">
             {duedate && (
-              <div className="flex items-center">
-                <FontAwesomeIcon icon={faCalendar} className="mr-1 text-gray-400" />
-                <span>{formatDateForDisplay(duedate)}</span>
-              </div>
-            )}
-            {duedate && (
-              <div className="flex items-center ml-3">
-                <FontAwesomeIcon icon={faClock} className="mr-1 text-gray-400" />
-                <span>{formatTimeForDisplay(duedate)}</span>
-              </div>
+              <>
+                <div className="flex items-center">
+                  <FontAwesomeIcon icon={faCalendar} className="mr-1 text-gray-400" />
+                  <span>{formatDateForDisplay(duedate)}</span>
+                </div>
+                <div className="flex items-center ml-3">
+                  <FontAwesomeIcon icon={faClock} className="mr-1 text-gray-400" />
+                  <span>{formatTimeForDisplay(duedate)}</span>
+                </div>
+              </>
             )}
           </div>
           <div className="flex flex-wrap gap-2">
@@ -156,7 +177,13 @@ const DropdownMenu = ({
     <div className='filter-dropdown relative'>
       <label htmlFor={id} className='sr-only'>{buttonText}</label>
       <div className='relative'>
-        <select name={id} id={id} value={activeValue} onChange={handleChange} className='filter-btn appearance-none flex items-center px-3 py-2 rounded-lg bg-white text-sm w-full pr-8 focus:outline-none'>
+        <select 
+          name={id} 
+          id={id} 
+          value={activeValue} 
+          onChange={handleChange} 
+          className='filter-btn appearance-none flex items-center px-3 py-2 rounded-lg bg-white text-sm w-full pr-8 focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-200'
+        >
           {items.map((item) => (
             <option key={item.value} value={item.value} className='dropdown-item'>{item.label}</option>
           ))}
@@ -180,16 +207,15 @@ const TaskModal = ({
     id: '',
     title: '',
     description: '',
-    dueDate: formatDate(new Date()), // Using camelCase here for form control
+    dueDate: formatDate(new Date()),
     time: '',
     priority: 'medium',
     tag: 'work'
   });
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Updated to use API property names
   useEffect(() => {
     if (taskToEdit) {
-      // Parse date and time from duedate for editing
       let date = formatDate(new Date());
       let time = '';
       
@@ -198,7 +224,6 @@ const TaskModal = ({
           const dueDate = new Date(taskToEdit.duedate);
           date = formatDate(dueDate);
           
-          // Format time as HH:MM for input
           const hours = String(dueDate.getHours()).padStart(2, '0');
           const minutes = String(dueDate.getMinutes()).padStart(2, '0');
           time = `${hours}:${minutes}`;
@@ -234,35 +259,54 @@ const TaskModal = ({
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Combine date and time for backend
-    const { dueDate, time, ...restData } = formData;
+    if (isLoading) return; // Prevent double submission
     
-    let combinedDueDate = null;
-    if (dueDate) {
-      try {
-        if (time) {
-          // Combine date and time into ISO format
-          const [year, month, day] = dueDate.split('-');
-          const [hours, minutes] = time.split(':');
-          combinedDueDate = new Date(year, month - 1, day, hours, minutes).toISOString();
-        } else {
-          // Use only date with default time (beginning of day)
-          const [year, month, day] = dueDate.split('-');
-          combinedDueDate = new Date(year, month - 1, day).toISOString();
+    setIsLoading(true);
+    
+    try {
+      const { dueDate, time, ...restData } = formData;
+      
+      let combinedDueDate = null;
+      if (dueDate) {
+        try {
+          if (time) {
+            const [year, month, day] = dueDate.split('-');
+            const [hours, minutes] = time.split(':');
+            combinedDueDate = new Date(year, month - 1, day, hours, minutes).toISOString();
+          } else {
+            const [year, month, day] = dueDate.split('-');
+            combinedDueDate = new Date(year, month - 1, day).toISOString();
+          }
+        } catch (e) {
+          console.warn('Error creating date:', e);
         }
-      } catch (e) {
-        console.warn('Error creating date:', e);
       }
+      
+      await onSave({
+        ...restData,
+        duedate: combinedDueDate
+      });
+    } catch (error) {
+      console.error('Error in form submission:', error);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleDelete = async () => {
+    if (isLoading) return;
     
-    // Use the API property name 'duedate' for backend
-    onSave({
-      ...restData,
-      duedate: combinedDueDate
-    });
+    setIsLoading(true);
+    try {
+      await onDelete(taskToEdit.id);
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -277,6 +321,7 @@ const TaskModal = ({
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
+            disabled={isLoading}
           >
             <FontAwesomeIcon icon={faTimes} />
           </button>
@@ -296,7 +341,8 @@ const TaskModal = ({
               value={formData.title}
               onChange={handleChange}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              disabled={isLoading}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
               placeholder="Enter task title"
             />
           </div>
@@ -311,7 +357,8 @@ const TaskModal = ({
               value={formData.description}
               onChange={handleChange}
               rows="3"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              disabled={isLoading}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
               placeholder="Enter task description"
             ></textarea>
           </div>
@@ -327,7 +374,8 @@ const TaskModal = ({
                 id="dueDate"
                 value={formData.dueDate}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                disabled={isLoading}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
               />
             </div>
 
@@ -341,7 +389,8 @@ const TaskModal = ({
                 id="time"
                 value={formData.time}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                disabled={isLoading}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
               />
             </div>
           </div>
@@ -356,7 +405,8 @@ const TaskModal = ({
                 id="priority"
                 value={formData.priority}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                disabled={isLoading}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -373,7 +423,8 @@ const TaskModal = ({
                 id="tag"
                 value={formData.tag}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                disabled={isLoading}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
               >
                 <option value="work">Work</option>
                 <option value="personal">Personal</option>
@@ -387,17 +438,25 @@ const TaskModal = ({
             {taskToEdit && (
               <button
                 type="button"
-                onClick={() => onDelete(taskToEdit.id)}
-                className="btn px-4 py-2 border border-red-500 text-red-500 rounded-lg font-medium"
+                onClick={handleDelete}
+                disabled={isLoading}
+                className="btn px-4 py-2 border border-red-500 text-red-500 rounded-lg font-medium hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
+                {isLoading ? (
+                  <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+                ) : null}
                 Delete
               </button>
             )}
             <button
               type="submit"
-              className="btn btn-primary px-4 py-2 text-white rounded-lg font-medium"
+              disabled={isLoading}
+              className="btn btn-primary px-4 py-2 text-white rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
-              Save Task
+              {isLoading ? (
+                <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+              ) : null}
+              {isLoading ? 'Saving...' : 'Save Task'}
             </button>
           </div>
         </form>
@@ -430,21 +489,20 @@ const Tasks = ({ onOpenSidebar }) => {
       const response = await taskService.getAllTasks();
       console.log('Tasks response:', response);
       
-      // Extract tasks array from the API response
       let tasksArray = [];
       if (Array.isArray(response)) {
         tasksArray = response;
       } else if (response && typeof response === 'object') {
-        // Check for the tasks property (from API format)
         if (Array.isArray(response.tasks)) {
           tasksArray = response.tasks;
         } else {
-          // Fallback to other common patterns
           tasksArray = response.data || response.result || [];
         }
       }
       
-      setTasks(tasksArray);
+      // Transform all tasks to ensure consistent structure
+      const transformedTasks = tasksArray.map(transformTask);
+      setTasks(transformedTasks);
     } catch (error) {
       setError('Failed to fetch tasks. Please try again later.');
       console.error('Error fetching tasks:', error);
@@ -453,12 +511,11 @@ const Tasks = ({ onOpenSidebar }) => {
     }
   }, []);
 
-  // Initial data fetch
   useEffect(() => {
     fetchTasks();
   }, [fetchTasks]);
 
-  // Calculate tasks due today - updated to use API property names
+  // Calculate tasks due today
   useEffect(() => {
     const today = formatDate(new Date());
     const count = tasks.filter(task => {
@@ -476,15 +533,15 @@ const Tasks = ({ onOpenSidebar }) => {
     setTasksToday(count);
   }, [tasks]);
 
-  // Filter tasks based on current filters and search query - updated to use API property names
+  // Filter and sort tasks
   const filteredTasks = useCallback(() => {
     let filtered = [...tasks];
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(task =>
-        (task.title && task.title.toLowerCase().includes(query)) ||
-        (task.description && task.description.toLowerCase().includes(query))
+        (task.title?.toLowerCase().includes(query)) ||
+        (task.description?.toLowerCase().includes(query))
       );
     }
 
@@ -503,7 +560,7 @@ const Tasks = ({ onOpenSidebar }) => {
             try {
               const taskDate = formatDate(new Date(task.duedate));
               return taskDate === today;
-            } catch (e) {
+            } catch {
               return false;
             }
           });
@@ -514,7 +571,7 @@ const Tasks = ({ onOpenSidebar }) => {
             try {
               const taskDate = formatDate(new Date(task.duedate));
               return taskDate === tomorrow;
-            } catch (e) {
+            } catch {
               return false;
             }
           });
@@ -525,7 +582,7 @@ const Tasks = ({ onOpenSidebar }) => {
             try {
               const taskDate = formatDate(new Date(task.duedate));
               return taskDate >= weekStart && taskDate <= weekEnd;
-            } catch (e) {
+            } catch {
               return false;
             }
           });
@@ -536,7 +593,7 @@ const Tasks = ({ onOpenSidebar }) => {
             try {
               const taskDate = formatDate(new Date(task.duedate));
               return taskDate >= monthStart && taskDate <= monthEnd;
-            } catch (e) {
+            } catch {
               return false;
             }
           });
@@ -562,7 +619,6 @@ const Tasks = ({ onOpenSidebar }) => {
     switch (sortBy) {
       case 'date':
         filtered.sort((a, b) => {
-          // Handle cases where duedate might be null
           if (!a.duedate && !b.duedate) return 0;
           if (!a.duedate) return 1;
           if (!b.duedate) return -1;
@@ -577,7 +633,6 @@ const Tasks = ({ onOpenSidebar }) => {
       }
       case 'recent':
         filtered.sort((a, b) => {
-          // Use created_at for sorting by recent
           if (!a.created_at && !b.created_at) return 0;
           if (!a.created_at) return 1;
           if (!b.created_at) return -1;
@@ -592,7 +647,7 @@ const Tasks = ({ onOpenSidebar }) => {
     return filtered;
   }, [tasks, searchQuery, filters, sortBy]);
 
-  // Toggle task completion - updated to use API property names
+  // Toggle task completion
   const toggleTaskCompletion = async (taskId) => {
     try {
       const taskToToggle = tasks.find(task => task.id === taskId);
@@ -600,7 +655,7 @@ const Tasks = ({ onOpenSidebar }) => {
       
       const newCompletionStatus = !taskToToggle.is_completed;
       
-      // Optimistic update - update UI before API call completes
+      // Optimistic update
       setTasks(prevTasks => prevTasks.map(task => {
         if (task.id === taskId) {
           return {
@@ -612,25 +667,20 @@ const Tasks = ({ onOpenSidebar }) => {
         return task;
       }));
       
-      // Make the API call with the correct property name
       await taskService.toggleTaskCompletion(taskId, newCompletionStatus);
-      
       toast.success(`Task marked as ${newCompletionStatus ? 'completed' : 'pending'}`);
     } catch (error) {
-      // Revert the optimistic update if the API call fails
       fetchTasks();
       toast.error('Failed to update task status. Please try again.');
       console.error('Error toggling task completion:', error);
     }
   };
 
-  // Open modal to add a new task
   const handleAddTask = () => {
     setTaskToEdit(null);
     setModalOpen(true);
   };
 
-  // Open modal to edit a task
   const handleEditTask = (taskId) => {
     const task = tasks.find(t => t.id === taskId);
     if (task) {
@@ -639,15 +689,11 @@ const Tasks = ({ onOpenSidebar }) => {
     }
   };
 
-  // Delete a task
   const handleDeleteTask = async (taskId) => {
     const confirmed = window.confirm('Are you sure you want to delete this task?');
     if (confirmed) {
       try {
-        // Optimistic update - remove from UI before API call completes
         setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
-        
-        // Make the API call
         await taskService.deleteTask(taskId);
         
         if (taskToEdit?.id === taskId) {
@@ -656,7 +702,6 @@ const Tasks = ({ onOpenSidebar }) => {
         
         toast.success('Task deleted successfully');
       } catch (error) {
-        // Revert the optimistic update if the API call fails
         fetchTasks();
         toast.error('Failed to delete task. Please try again.');
         console.error('Error deleting task:', error);
@@ -664,12 +709,10 @@ const Tasks = ({ onOpenSidebar }) => {
     }
   };
 
-  // Save a task (create or update) - updated to use API property names
   const handleSaveTask = async (taskData) => {
     try {
       let savedTask;
       
-      // We're now using the API property name 'duedate' directly
       if (taskData.id) {
         // Update existing task
         savedTask = await taskService.updateTask(taskData.id, {
@@ -680,9 +723,10 @@ const Tasks = ({ onOpenSidebar }) => {
           tag: taskData.tag
         });
         
-        // Update local state
+        // Transform the response and update local state
+        const transformedTask = transformTask(savedTask);
         setTasks(prevTasks => prevTasks.map(task => 
-          task.id === taskData.id ? savedTask : task
+          task.id === taskData.id ? transformedTask : task
         ));
         
         toast.success('Task updated successfully');
@@ -696,21 +740,22 @@ const Tasks = ({ onOpenSidebar }) => {
           tag: taskData.tag
         });
         
-        // Add new task to local state
-        setTasks(prevTasks => [...prevTasks, savedTask]);
+        // Transform the response and add to local state
+        const transformedTask = transformTask(savedTask);
+        setTasks(prevTasks => [...prevTasks, transformedTask]);
         
         toast.success('Task created successfully');
       }
       
-      // Close the modal
       setModalOpen(false);
     } catch (error) {
       toast.error('Failed to save task. Please try again.');
       console.error('Error saving task:', error);
+      throw error; // Re-throw to handle in modal
     }
   };
 
-  // Define filter dropdowns
+  // Filter dropdown items
   const dateFilterItems = [
     { value: 'all', label: 'All Dates' },
     { value: 'today', label: 'Today' },
@@ -746,7 +791,7 @@ const Tasks = ({ onOpenSidebar }) => {
     { value: 'recent', label: 'Recently Added' }
   ];
 
-  // Show loading state
+  // Loading state
   if (loading && tasks.length === 0) {
     return (
       <div className="flex-1 tasks-bg flex items-center justify-center">
@@ -758,7 +803,7 @@ const Tasks = ({ onOpenSidebar }) => {
     );
   }
   
-  // Show error state
+  // Error state
   if (error && tasks.length === 0) {
     return (
       <div className="flex-1 tasks-bg flex items-center justify-center">
@@ -785,7 +830,6 @@ const Tasks = ({ onOpenSidebar }) => {
         {/* Top Navigation Bar */}
         <header className="bg-white shadow-sm py-3 px-4 md:px-6">
           <div className="flex justify-between items-center">
-            {/* Add Task Button */}
             <button id='open-sidebar' className='md:hidden mr-4 text-[#64748b] hover:text-[#334155]' onClick={onOpenSidebar}>
               <HamburgerIcon />
             </button>
@@ -797,7 +841,6 @@ const Tasks = ({ onOpenSidebar }) => {
               <span>&nbsp;Add Task</span>
             </button>
 
-            {/* Profile */}
             <div className="flex items-center">
               <NavLink to="/profile" className="w-9 h-9 bg-gray-200 rounded-full flex items-center justify-center cursor-pointer">
                 <span className="text-gray-700 font-medium">JD</span>
@@ -821,14 +864,13 @@ const Tasks = ({ onOpenSidebar }) => {
             {/* Filters and Search */}
             <div className="mb-6 bg-white rounded-lg p-4 shadow-sm">
               <div className="filters-row flex flex-wrap items-center justify-between gap-3">
-                {/* Search */}
                 <div className="search-container relative flex-grow w-full">
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search tasks..."
-                    className="search-input w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none"
+                    className="search-input w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none border border-gray-200 focus:ring-2 focus:ring-purple-500"
                   />
                   <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
                     <FontAwesomeIcon icon={faSearch} />
@@ -837,7 +879,6 @@ const Tasks = ({ onOpenSidebar }) => {
               </div>
 
               <div className="filter-row flex flex-wrap items-center gap-3 mt-3">
-                {/* Filter Dropdowns */}
                 <DropdownMenu
                   id="dateFilterMenu"
                   buttonText={dateFilterItems.find(item => item.value === filters.date)?.label || 'Date'}
