@@ -75,7 +75,7 @@ const Signup = () => {
             <div className='form-container relative rounded-2xl p-8 md:p-10 w-full max-w-md mx-auto'>
                 <div className='flex justify-center mb-6'>
                     <div className='w-16 h-16 bg-indigo-100 shadow-indigo-800 shadow-md/25 rounded-full flex items-center justify-center floating'>
-                        <Fig1></Fig1>
+                        <img src="/logo-1.png" alt="Virtual Mentor Logo" className='w-12 h-12' />
                     </div>
                 </div>
 

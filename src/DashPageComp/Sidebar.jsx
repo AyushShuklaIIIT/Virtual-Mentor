@@ -1,5 +1,4 @@
 import React from 'react'
-import Icon from '../SVGs/Icon'
 import HomeIcon from '../SVGs/HomeIcon'
 import TasksIcon from '../SVGs/TasksIcon'
 import CalendarIcon from '../SVGs/CalendarIcon'
@@ -16,7 +15,7 @@ const Sidebar = ({open, onClose}) => {
         <aside id='sidebar' className={`bg-white w-64 border-r border-gray-200 h-full flex-shrink-0 flex flex-col z-20 fixed md:relative transform md:translate-x-0 ${open ? 'translate-x-0': '-translate-x-full'} transition-transform duration-300 ease-in-out`}>
             <div className='p-4 border-b border-gray-200 flex items-center justify-between'>
                 <div className='flex items-center space-x-2'>
-                    <Icon></Icon>
+                    <img src="/logo-1.png" alt="Virtual Task Mentor Logo" className='w-9 h-9' />
                     <span className='font-bold text-lg text-[#1e293b]'>Task Mentor</span>
                 </div>
                 <button id='close-sidebar' className='md:hidden text-[#64748b] hover:text-[#334155]' onClick={onClose}>

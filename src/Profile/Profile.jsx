@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 import './profile.css';
-import Icon from '../SVGs/Icon';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faBullseye,
@@ -271,7 +270,7 @@ const Profile = () => {
             {/* Logo and App Name */}
             <div className='flex items-center'>
               <div className='w-10 h-10 rounded-full flex items-center justify-center mr-3'>
-                <Icon />
+                <img src="/logo-1.png" alt="Virtual Mentor Logo" className='w-10 h-10' />
               </div>
               <h1 className='text-xl font-semibold text-gray-800 hidden md:block'>Virtual Mentor</h1>
             </div>

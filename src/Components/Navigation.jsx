@@ -1,5 +1,4 @@
 import React from 'react'
-import Fig1 from '../SVGs/Fig1'
 import ButtonIcon from '../SVGs/ButtonIcon'
 import { NavLink } from 'react-router-dom'
 
@@ -8,14 +7,12 @@ const Navigation = ({setSidebarOpen}) => {
     <nav className='bg-white/80 backdrop-blur-md py-4 px-6 fixed w-full z-10 border-b border-gray-100'>
       <div className='max-w-7xl mx-auto flex justify-between items-center'>
         <div className='flex items-center space-x-2'>
-            <Fig1></Fig1>
+            <img src="/logo-1.png" alt="Virtual Mentor Logo" className='w-12 h-12' />
             <span className='font-bold text-xl'>Virtual Mentor</span>
         </div>
 
         <div className='hidden md:flex items-center space-x-8'>
             <a href="#features" className="text-gray-600 hover:text-[#0068c6] transition-colors">Features</a>
-            <a href="#" className='text-gray-600 hover:text-[#0068c6] transition-colors'>Pricing</a>
-            <a href="#" className='text-gray-600 hover:text-[#0068c6] transition-colors'>Resources</a>
             <a href="#about" className='text-gray-600 hover:text-[#0068c6] transition-colors'>About</a>
         </div> 
 
