@@ -209,6 +209,21 @@ const taskService = {
       console.error(`Error deleting task ${taskId}:`, error);
       throw error;
     }
+  },
+
+  getSuggestions: async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/task/suggestions`, {
+        method: 'GET',
+        headers: getHeaders(),
+        credentials: 'include'
+      });
+      const suggestions = await handleResponse(response);
+      return suggestions;
+    } catch (error) {
+      console.error('Error fetching task suggestions:', error);
+      throw error;
+    }
   }
 };
 

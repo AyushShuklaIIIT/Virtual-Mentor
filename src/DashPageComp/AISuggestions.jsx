@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRobot, faLightbulb, faRefresh, faTimes } from '@fortawesome/free-solid-svg-icons';
+import taskService from '../api/taskService'
 
 const AISuggestions = () => {
   const [suggestions, setSuggestions] = useState([]);
@@ -10,14 +11,10 @@ const AISuggestions = () => {
   const fetchSuggestions = async () => {
     setLoading(true);
     try {
-      // Replace with actual AI API call
-      // const response = await aiService.getSuggestions();
-      // setSuggestions(response.suggestions);
-      
-      // Simulate API call
-      setTimeout(() => {
-        setLoading(false);
-      }, 1000);
+      const response = await taskService.getSuggestions();
+      // Assuming the response is in the format { suggestions: [...] }
+      setSuggestions(response.suggestions);
+      setLoading(false);
     } catch (error) {
       console.error('Failed to fetch AI suggestions:', error);
       setLoading(false);
@@ -83,32 +80,16 @@ const AISuggestions = () => {
         </div>
       ) : (
         <div className='space-y-3'>
-          {suggestions.slice(0, 2).map((suggestion) => (
             <div 
-              key={suggestion.id}
               className='bg-white rounded-lg p-3 border border-gray-100 hover:border-purple-200 transition-colors cursor-pointer'
             >
               <div className='flex items-start space-x-3'>
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                  suggestion.priority === 'high' ? 'bg-red-100 text-red-600' :
-                  suggestion.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' :
-                  'bg-green-100 text-green-600'
-                }`}>
-                  <FontAwesomeIcon icon={suggestion.icon} className='text-xs' />
-                </div>
                 <div className='flex-1'>
-                  <h4 className='font-medium text-gray-800 text-sm'>{suggestion.title}</h4>
-                  <p className='text-gray-600 text-xs mt-1'>{suggestion.description}</p>
+                  <h4 className='font-medium text-gray-800 text-sm'>{suggestions}</h4>
                 </div>
               </div>
             </div>
-          ))}
-          
-          {suggestions.length > 2 && (
-            <button className='w-full text-center text-purple-600 hover:text-purple-800 text-sm font-medium py-2'>
-              View {suggestions.length - 2} more suggestions
-            </button>
-          )}
+          )
         </div>
       )}
     </div>
