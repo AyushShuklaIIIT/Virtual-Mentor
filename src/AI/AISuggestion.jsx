@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import './ai.css'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEdit, faLightbulb, faRefresh } from '@fortawesome/free-solid-svg-icons';
+import { faClock } from '@fortawesome/free-regular-svg-icons';
 
 const AISuggestion = () => {
 
@@ -117,7 +118,7 @@ const AISuggestion = () => {
         <div className='mt-12 mb-8'>
           <div className='flex items-center justify-between mb-4'>
             <h2 className='text-lg font-medium text-gray-700 flex items-center'>
-              <FontAwesomeIcon icon={faLightbulb} className='h-5 w-5 text-gray-600 mr-2' />
+              <FontAwesomeIcon icon={faClock} className='h-5 w-5 text-purple-600 mr-2' />
               Previous Suggestions
             </h2>
             <button id='toggle-history' className='text-sm text-purple-600 hover:text-purple-800 transition-colors'>
