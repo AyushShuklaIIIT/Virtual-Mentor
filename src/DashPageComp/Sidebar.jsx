@@ -8,10 +8,12 @@ import '../App.css'
 import SettingsIcon from '../SVGs/SettingsIcon'
 import CrossIcon from '../SVGs/CrossIcon'
 import { NavLink } from 'react-router-dom'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faLightbulb } from '@fortawesome/free-regular-svg-icons'
 
 const Sidebar = ({open, onClose}) => {
     return (
-        <aside id='sidebar' className={`bg-white w-64 border-r border-gray-200 h-full flex-shrink-0 flex flex-col z-20 fixed md:relative transform md:translate-x-0 ${open ? 'translate-x-0': '-translate-x-full'} transition-transform duration-200 ease-in-out`}>
+        <aside id='sidebar' className={`bg-white w-64 border-r border-gray-200 h-full flex-shrink-0 flex flex-col z-20 fixed md:relative transform md:translate-x-0 ${open ? 'translate-x-0': '-translate-x-full'} transition-transform duration-300 ease-in-out`}>
             <div className='p-4 border-b border-gray-200 flex items-center justify-between'>
                 <div className='flex items-center space-x-2'>
                     <Icon></Icon>
@@ -39,6 +41,16 @@ const Sidebar = ({open, onClose}) => {
                         <span className='font-medium'>Calendar</span>
                     </NavLink>
 
+                    <NavLink to="/ai-suggestions" className={(e) => `${e.isActive ? "sidebar-active" : "text-[#475569] hover:bg-gray-50"} flex items-center px-4 py-3 rounded-lg group`}>
+                        <div className='mr-3 flex items-center justify-center'>
+                            <FontAwesomeIcon 
+                                icon={faLightbulb}
+                                className='sidebar-icon w-6 h-6'
+                            />
+                        </div>
+                        <span className='font-medium'>AI Suggestions</span>
+                    </NavLink>
+
                     <NavLink to="/insights" className={(e) => `${e.isActive ? "sidebar-active" : "text-[#475569] hover:bg-gray-50"} flex items-center px-4 py-3 rounded-lg group`}>
                         <InsightsIcon></InsightsIcon>
                         <span className='font-medium'>Insights</span>
@@ -56,13 +68,13 @@ const Sidebar = ({open, onClose}) => {
                     <div className='flex items-center space-x-3'>
                         <div className='relative'>
                             <div className='w-10 h-10 rounded-full flex items-center justify-center text-[#6627cc] font-medium bg-purple-200'>
-                                JD
+                                AS
                             </div>
                             <div className='absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white'></div>
                         </div>
                         <div>
-                            <p className='font-medium text-sm'>John Doe</p>
-                            <p className='text-xs text-[#64748b]'>Productivity Master</p>
+                            <p className='font-medium text-sm'>Ayush Shukla</p>
+                            <p className='text-xs text-[#64748b]'>AI-Powered Learner</p>
                         </div>
                     </div>
                 </div>

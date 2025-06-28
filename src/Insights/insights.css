@@ -59,6 +59,7 @@
     opacity: 0.08;
     z-index: -1;
     transform: rotate(-15deg);
+    overflow: hidden;
 }
 
 .chart-container {

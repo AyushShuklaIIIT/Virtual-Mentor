@@ -793,9 +793,6 @@ const Insights = ({ onOpenSidebar }) => {
                                 }
                                 return (
                                     <div className={`card stat-card p-5 fade-in fade-in-delay-${i + 1}`} key={stat.title}>
-                                        <div className='icon-bg'>
-                                            <FontAwesomeIcon icon={stat.icon} />
-                                        </div>
                                         <div className='flex items-center justify-between mb-2'>
                                             <h3 className='text-gray-500 font-medium'>{stat.title}</h3>
                                             <div className={`w-8 h-8 rounded-full ${statBgClass} flex items-center justify-center`}>
