@@ -67,7 +67,8 @@ const MainDashboardContent = () => {
     const [streakHistory, setStreakHistory] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [userName, setUserName] = useState('John'); // Default name, could be fetched from user profile
+    const [userName, setUserName] = useState('User');
+    const [userLoading, setUserLoading] = useState(true);
 
     // Update greeting based on time
     useEffect(() => {
@@ -75,7 +76,40 @@ const MainDashboardContent = () => {
         return () => clearInterval(interval);
     }, []);
 
-    // Fetch tasks from the API
+    // Fetch user information
+    const fetchUserInfo = useCallback(async () => {
+        try {
+            setUserLoading(true);
+            const response = await fetch('https://hackdemo-backend.onrender.com/api/user/info', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('User info response:', data);
+
+            if (data && data.name && typeof data.name === 'string') {
+                setUserName(data.name.trim());
+            } else {
+                console.warn('Unexpected user info response format:', data);
+                setUserName('User');
+            }
+
+        } catch (err) {
+            console.error('Error fetching user info:', err);
+            setUserName('User');
+        } finally {
+            setUserLoading(false);
+        }
+    }, []);
+
     const fetchTasks = useCallback(async () => {
         setLoading(true);
         setError(null);
@@ -110,7 +144,6 @@ const MainDashboardContent = () => {
         }
     }, []);
 
-    // Process task data to calculate statistics
     const processTaskData = useCallback((allTasks) => {
         // Calculate start and end of week (Monday-Sunday)
         const today = new Date();
@@ -174,10 +207,11 @@ const MainDashboardContent = () => {
         setStreakHistory(getStreakHistory(allTasks, 7));
     }, []);
 
-    // Load task data on mount
+    // Load user info and task data on mount
     useEffect(() => {
+        fetchUserInfo();
         fetchTasks();
-    }, [fetchTasks]);
+    }, [fetchUserInfo, fetchTasks]);
 
     // Always render Mon-Sun left to right (no reordering)
     const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -219,7 +253,13 @@ const MainDashboardContent = () => {
             <div className='max-w-7xl mx-auto'>
                 {/* Welcome Section */}
                 <div className='mb-6'>
-                    <h2 className='text-2xl font-bold mb-1'>{greeting}, {userName}!</h2>
+                    <h2 className='text-2xl font-bold mb-1'>
+                        {greeting}, {userLoading ? (
+                            <span className="inline-block w-16 h-6 bg-gray-200 animate-pulse rounded"></span>
+                        ) : (
+                            userName
+                        )}!
+                    </h2>
                     <p className='text-[#64748b]'>Here's what's happening with your tasks today.</p>
                 </div>
 

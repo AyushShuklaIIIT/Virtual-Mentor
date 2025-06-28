@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faCamera,
@@ -11,7 +11,8 @@ import {
     faTrashAlt,
     faUser,
     faPlus,
-    faMinus
+    faMinus,
+    faSpinner
 } from '@fortawesome/free-solid-svg-icons';
 import { faCopyright } from '@fortawesome/free-regular-svg-icons';
 import './settings.css';
@@ -53,8 +54,59 @@ const Settings = ({ onOpenSidebar }) => {
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const [defaultView, setDefaultView] = useState('task-list');
     const [defaultPriority, setDefaultPriority] = useState('Low');
+    
+    // Loading and error states
+    const [userLoading, setUserLoading] = useState(true);
+    const [userError, setUserError] = useState(null);
+    const [updateLoading, setUpdateLoading] = useState(false);
 
     const inputRef = useRef(null);
+
+    // Fetch user information from API
+    const fetchUserInfo = useCallback(async () => {
+        try {
+            setUserLoading(true);
+            setUserError(null);
+            
+            const response = await fetch('https://hackdemo-backend.onrender.com/api/user/info', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('User info response:', data);
+
+            // Handle the API response format: { name: "Name", email: "example@gmail.com" }
+            if (data && data.name && typeof data.name === 'string') {
+                setFullName(data.name.trim());
+                setEmail(data.email || '');
+            } else {
+                console.warn('Unexpected user info response format:', data);
+                throw new Error('Invalid response format from server');
+            }
+
+        } catch (err) {
+            console.error('Error fetching user info:', err);
+            setUserError(err.message || 'Failed to fetch user information');
+            // Keep empty values on error
+            setFullName('');
+            setEmail('');
+        } finally {
+            setUserLoading(false);
+        }
+    }, []);
+
+    // Load user info on component mount
+    useEffect(() => {
+        fetchUserInfo();
+    }, [fetchUserInfo]);
 
     // Fade-in animation on scroll
     useEffect(() => {
@@ -89,6 +141,48 @@ const Settings = ({ onOpenSidebar }) => {
                 setProfilePic(reader.result);
             };
             reader.readAsDataURL(file);
+        }
+    };
+
+    // Update profile information
+    const handleProfileUpdate = async (e) => {
+        e.preventDefault();
+        
+        if (!fullName.trim()) {
+            alert('Please enter your full name.');
+            return;
+        }
+
+        if (!email.trim()) {
+            alert('Please enter your email address.');
+            return;
+        }
+
+        setUpdateLoading(true);
+        
+        try {
+            // TODO: Implement profile update API call
+            // const response = await fetch('https://hackdemo-backend.onrender.com/api/user/update', {
+            //     method: 'PUT',
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //     },
+            //     credentials: 'include',
+            //     body: JSON.stringify({
+            //         name: fullName.trim(),
+            //         email: email.trim()
+            //     })
+            // });
+
+            // For now, just simulate success
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            alert('Profile updated successfully!');
+            
+        } catch (err) {
+            console.error('Error updating profile:', err);
+            alert('Failed to update profile. Please try again.');
+        } finally {
+            setUpdateLoading(false);
         }
     };
 
@@ -138,6 +232,11 @@ const Settings = ({ onOpenSidebar }) => {
         alert('Feedback sent!');
     };
 
+    // Retry fetching user info
+    const handleRetryFetch = () => {
+        fetchUserInfo();
+    };
+
     return (
         <div className='settings-bg'>
             <div className='min-h-screen flex flex-col'>
@@ -169,51 +268,105 @@ const Settings = ({ onOpenSidebar }) => {
                             iconClass="bg-purple-100"
                             title="Account Settings"
                         >
-                            {/* Profile Info */}
-                            <div className='flex flex-col md:flex-row items-start md:items-center mb-6 pb-6 border-b border-gray-200'>
-                                <div
-                                    className='profile-upload mb-4 md:mb-0 cursor-pointer'
-                                    onClick={() => inputRef.current?.click()}
-                                    title="Upload new profile picture"
-                                >
-                                    <div className='w-20 h-20 rounded-full bg-gray-200 overflow-hidden relative'>
-                                        <img src={profilePic} alt="Profile" className='w-full h-full object-cover' />
-                                        <div className='upload-overlay absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity'>
-                                            <FontAwesomeIcon icon={faCamera} className='text-white' />
+                            {/* Error State */}
+                            {userError && (
+                                <div className='mb-6 p-4 bg-red-50 border border-red-200 rounded-lg'>
+                                    <div className='flex items-center justify-between'>
+                                        <div className='flex items-center'>
+                                            <FontAwesomeIcon icon={faExclamationTriangle} className='text-red-500 mr-2' />
+                                            <span className='text-red-700 text-sm'>Failed to load user information</span>
+                                        </div>
+                                        <button
+                                            onClick={handleRetryFetch}
+                                            disabled={userLoading}
+                                            className='text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50'
+                                        >
+                                            {userLoading ? 'Retrying...' : 'Retry'}
+                                        </button>
+                                    </div>
+                                    <p className='text-red-600 text-xs mt-1'>{userError}</p>
+                                </div>
+                            )}
+
+                            {/* Profile Info Form */}
+                            <form onSubmit={handleProfileUpdate}>
+                                <div className='flex flex-col md:flex-row items-start md:items-center mb-6 pb-6 border-b border-gray-200'>
+                                    <div
+                                        className='profile-upload mb-4 md:mb-0 cursor-pointer'
+                                        onClick={() => inputRef.current?.click()}
+                                        title="Upload new profile picture"
+                                    >
+                                        <div className='w-20 h-20 rounded-full bg-gray-200 overflow-hidden relative'>
+                                            <img src={profilePic} alt="Profile" className='w-full h-full object-cover' />
+                                            <div className='upload-overlay absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity'>
+                                                <FontAwesomeIcon icon={faCamera} className='text-white' />
+                                            </div>
+                                        </div>
+                                        <input
+                                            type="file"
+                                            className='hidden'
+                                            id="profile-pic-upload"
+                                            ref={inputRef}
+                                            accept="image/*"
+                                            onChange={handleProfilePicChange}
+                                        />
+                                    </div>
+                                    <div className='md:ml-6 flex-grow w-full'>
+                                        <div className='mb-4'>
+                                            <label htmlFor="name" className='block text-sm font-medium text-gray-600 mb-1'>
+                                                Full Name
+                                            </label>
+                                            {userLoading ? (
+                                                <div className="w-full h-10 bg-gray-200 animate-pulse rounded-lg"></div>
+                                            ) : (
+                                                <input
+                                                    type="text"
+                                                    id='name'
+                                                    className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 transition-colors'
+                                                    value={fullName}
+                                                    onChange={e => setFullName(e.target.value)}
+                                                    placeholder="Enter your full name"
+                                                    disabled={updateLoading}
+                                                />
+                                            )}
+                                        </div>
+                                        <div className='mb-4'>
+                                            <label htmlFor="email" className='block text-sm font-medium text-gray-600 mb-1'>
+                                                Email Address
+                                            </label>
+                                            {userLoading ? (
+                                                <div className="w-full h-10 bg-gray-200 animate-pulse rounded-lg"></div>
+                                            ) : (
+                                                <input
+                                                    type="email"
+                                                    id="email"
+                                                    className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 transition-colors'
+                                                    value={email}
+                                                    onChange={e => setEmail(e.target.value)}
+                                                    placeholder="Enter your email address"
+                                                    disabled={updateLoading}
+                                                />
+                                            )}
+                                        </div>
+                                        <div className='flex justify-end'>
+                                            <button 
+                                                type="submit" 
+                                                className='px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors btn disabled:opacity-50 disabled:cursor-not-allowed flex items-center'
+                                                disabled={updateLoading || userLoading}
+                                            >
+                                                {updateLoading ? (
+                                                    <>
+                                                        <FontAwesomeIcon icon={faSpinner} className='animate-spin mr-2' />
+                                                        Updating...
+                                                    </>
+                                                ) : (
+                                                    'Update Profile'
+                                                )}
+                                            </button>
                                         </div>
                                     </div>
-                                    <input
-                                        type="file"
-                                        className='hidden'
-                                        id="profile-pic-upload"
-                                        ref={inputRef}
-                                        accept="image/*"
-                                        onChange={handleProfilePicChange}
-                                    />
                                 </div>
-                                <div className='md:ml-6 flex-grow w-full'>
-                                    <div className='mb-4'>
-                                        <label htmlFor="name" className='block text-sm font-medium text-gray-600 mb-1'>Full Name</label>
-                                        <input
-                                            type="text"
-                                            id='name'
-                                            className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 transition-colors'
-                                            value={fullName}
-                                            onChange={e => setFullName(e.target.value)}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label htmlFor="email" className='block text-sm font-medium text-gray-600 mb-1'>Email Address</label>
-                                        <input
-                                            type="email"
-                                            id="email"
-                                            className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 transition-colors'
-                                            value={email}
-                                            onChange={e => setEmail(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
+                            </form>
 
                             {/* Password Change */}
                             <form className='mb-6 pb-6 border-b border-gray-200' onSubmit={handlePasswordUpdate} autoComplete="off">
