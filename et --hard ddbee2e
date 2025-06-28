@@ -1,0 +1,39 @@
+[33m58885bd[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;32mnew-branch-name[m[33m)[m aik doig some work
+[33mddbee2e[m changes made
+[33mdcb491c[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Merge branch 'main' of https://github.com/AyushShuklaIIIT/Virtual-Mentor
+[33m3641c42[m Added loader to signup and login
+[33m0ef2c74[m Merge pull request #2 from girdharshukla-dev/backend-branch
+[33m3ae0b59[m adding the backend repo
+[33mebc158a[m Merge pull request #1 from AyushShuklaIIIT/imgbot
+[33mcfe892d[m Modified to display real name and email of current user
+[33m90dc722[m [ImgBot] Optimize images
+[33med6f535[m Changed icons
+[33mb06937e[m Changed icons
+[33m9e64ca1[m Modified AI suggestions
+[33mb0c5309[m Added sidebar along with AI suggestions page
+[33mc51d8df[m Reset changes
+[33maf0208c[m Modified AI suggestion
+[33mccc356c[m Added clock icon
+[33m499a2ee[m Changed icons
+[33m6cb12e9[m Modified AI Suggestions page
+[33m87138b6[m Added AI Suggestions page
+[33m692b038[m Added AI suggestions in sidebar
+[33me7e1d8c[m Modified AI suggestions box to add some error and default messages
+[33mb5a19ca[m Added AI suggestions
+[33m8e18949[m Added AI suggestions box
+[33m58d0f1e[m Added logout buttons in the profile circle
+[33m7f3c749[m Made changes
+[33m0fc2fd3[m Added loader to indicate that logging out is happening
+[33m7916d86[m Modified profile dropdown to logout
+[33mc2ddd4f[m Resolved errors in updating tasks through dashboard
+[33m9fbca5e[m Modified calendar to refresh the task list after modifying any tasks
+[33m7cdd3c6[m Now refresh the tasks after task is added
+[33m4b67f9d[m Modified Tasks to show some indication that the task is loading
+[33maf52c27[m Modified insights page to dynamically fetch data from backend
+[33mb5902df[m Modified the components to properly handle backend responses
+[33mfe04348[m Created the settings, login, signup, tasks and team pages, and also added taskService as api to fetch data from backdnd
+[33m186cf0f[m Downloaded react toastify
+[33m506ec74[m Added profile, calendar and insights
+[33m7265e28[m Made the skeleton files and Homepage and dashboard components
+[33m8173987[m Create vite file
+[33m716d180[m Initial commit
