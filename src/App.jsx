@@ -8,7 +8,6 @@ import TaskNav from "./Tasks/TaskNav"
 import InsightNav from './Insights/InsightNav'
 import SettingsNav from "./Settings/SettingsNav"
 import Profile from "./Profile/Profile"
-import Team from "./TeamManagement/Team"
 import AINav from "./AI/AINav"
 
 function App() {

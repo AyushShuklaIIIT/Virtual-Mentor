@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import './signup.css'
-import Fig1 from '../SVGs/Fig1'
 import PhoneIcon from '../SVGs/PhoneIcon'
 import RobotIcon from '../SVGs/RobotIcon'
 import ClockIcon from './ClockIcon'
@@ -16,6 +15,7 @@ const Signup = () => {
     });
 
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -27,11 +27,14 @@ const Signup = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsLoading(true);
+        setError('');
 
         const { fullName, email, password, confirmPassword } = formData;
 
         if(password !== confirmPassword) {
             setError('Passwords do not match');
+            setIsLoading(false);
             return;
         }
 
@@ -51,16 +54,23 @@ const Signup = () => {
             const data = await res.json();
             if(!res.ok) {
                 setError(data.message || 'Signup failed');
+                setIsLoading(false);
                 return;
             }
 
             console.log('User registered: ', data);
             setError('');
             setformData({fullName: '', email: '', password: '', confirmPassword: ''});
-            navigate('/login');
+            
+            // Add a small delay to show success state before navigation
+            setTimeout(() => {
+                setIsLoading(false);
+                navigate('/login');
+            }, 1000);
         } catch (err) {
             console.error('Error during signup: ', err);
             setError('Something went wrong. Please try again.');
+            setIsLoading(false);
         }
     }
 
@@ -85,27 +95,83 @@ const Signup = () => {
                     <div className='space-y-4'>
                         <div>
                             <label htmlFor="fullName" className='block text-sm font-medium text-gray-700 mb-1'>Full Name</label>
-                            <input type="text" id='fullName' name='fullName' value={formData.fullName} onChange={handleChange} required className='input-field w-full px-4 py-3 rounded-lg text-gray-700 focus:outline-none' placeholder='Enter your full name' />
+                            <input 
+                                type="text" 
+                                id='fullName' 
+                                name='fullName' 
+                                value={formData.fullName} 
+                                onChange={handleChange} 
+                                required 
+                                disabled={isLoading}
+                                className='input-field w-full px-4 py-3 rounded-lg text-gray-700 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed'
+                                placeholder="Enter your full name"
+                            />
                         </div>
 
                         <div>
                             <label htmlFor="email" className='block text-sm font-medium text-gray-700 mb-1'>Email</label>
-                            <input type="email" id='email' name='email' value={formData.email} onChange={handleChange} required className='input-field w-full px-4 py-3 rounded-lg text-gray-700 focus:outline-none' placeholder='Enter your email' />
+                            <input 
+                                type="email" 
+                                id='email' 
+                                name='email' 
+                                value={formData.email} 
+                                onChange={handleChange} 
+                                required 
+                                disabled={isLoading}
+                                className='input-field w-full px-4 py-3 rounded-lg text-gray-700 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed'
+                                placeholder="Enter your email"
+                            />
                         </div>
 
                         <div>
                             <label htmlFor="password" className='block text-sm font-medium text-gray-700 mb-1'>Password</label>
-                            <input type="password" id='password' name='password' value={formData.password} onChange={handleChange} required className='input-field w-full px-4 py-3 rounded-lg text-gray-700 focus:outline-none' placeholder='Create a password' />
+                            <input 
+                                type="password" 
+                                id='password' 
+                                name='password' 
+                                value={formData.password} 
+                                onChange={handleChange} 
+                                required 
+                                disabled={isLoading}
+                                className='input-field w-full px-4 py-3 rounded-lg text-gray-700 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed'
+                                placeholder="Enter your password"
+                            />
                         </div>
 
                         <div>
                             <label htmlFor="confirmPassword" className='block text-sm font-medium text-gray-700 mb-1'>Confirm Password</label>
-                            <input type="password" id='confirmPassword' name='confirmPassword' value={formData.confirmPassword} onChange={handleChange} required className='input-field w-full px-4 py-3 rounded-lg text-gray-700 focus:outline-none' placeholder='Confirm your password' />
+                            <input 
+                                type="password" 
+                                id='confirmPassword' 
+                                name='confirmPassword' 
+                                value={formData.confirmPassword} 
+                                onChange={handleChange} 
+                                required 
+                                disabled={isLoading}
+                                className='input-field w-full px-4 py-3 rounded-lg text-gray-700 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed'
+                                placeholder="Confirm your password"
+                            />
                         </div>
 
                         { error && <p className='text-red-500 text-sm bg-red-100 rounded-lg px-4 py-3 outline outline-red-300'>{error}</p> }
 
-                        <button type='submit' className='signup-btn gradient-bg w-full py-3 rounded-lg text-white font-semibold mt-6 focus:outline-none'>Sign Up</button>
+                        <button 
+                            type='submit' 
+                            disabled={isLoading}
+                            className='signup-btn gradient-bg w-full py-3 rounded-lg text-white font-semibold mt-6 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center'
+                        >
+                            {isLoading ? (
+                                <>
+                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Creating Account...
+                                </>
+                            ) : (
+                                'Sign Up'
+                            )}
+                        </button>
 
                         <div className='text-center mt-4'>
                             <p className='text-gray-600'>
