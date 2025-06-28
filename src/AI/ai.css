@@ -269,3 +269,43 @@
 .rotate-180 {
     transform: rotate(180deg);
 }
+
+.get-started-button {
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+.get-started-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+}
+
+.get-started-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Welcome container */
+.welcome-container {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.05), rgba(79, 70, 229, 0.05));
+  border: 1px solid rgba(124, 58, 237, 0.1);
+  border-radius: 16px;
+}
+
+/* Different status colors for avatar indicator */
+.bg-blue-400 {
+  background-color: #60a5fa; /* Ready state */
+}
+
+.bg-green-400 {
+  background-color: #4ade80; /* Has data state */
+}
+
+.bg-gray-400 {
+  background-color: #9ca3af; /* Idle state */
+}
+
+/* Enhanced focus states */
+.get-started-button:focus {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
+}

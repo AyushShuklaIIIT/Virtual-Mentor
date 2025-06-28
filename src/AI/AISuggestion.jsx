@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import './ai.css'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faLightbulb, faRefresh, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faLightbulb, faRefresh, faExclamationTriangle, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { faClock } from '@fortawesome/free-regular-svg-icons';
 import taskService from '../api/taskService';
 import HamburgerIcon from '../SVGs/HamburgerIcon';
@@ -10,13 +10,14 @@ const AISuggestion = ({ onOpenSidebar }) => {
   // State management
   const [currentSuggestion, setCurrentSuggestion] = useState('');
   const [previousSuggestions, setPreviousSuggestions] = useState([]);
-
-  const [isLoading, setIsLoading] = useState(true);
+  
+  const [isLoading, setIsLoading] = useState(false); // Changed: No initial loading
   const [isLoadingNew, setIsLoadingNew] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [isAddingToNotes, setIsAddingToNotes] = useState(false);
   const [error, setError] = useState(null);
   const [hasData, setHasData] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false); // New: Track if user has started
 
   // Memoized values
   const toggleButtonText = useMemo(() => showHistory ? 'Hide' : 'Show', [showHistory]);
@@ -45,10 +46,11 @@ const AISuggestion = ({ onOpenSidebar }) => {
   }, []);
 
   // Fetch suggestions from API
-  const fetchSuggestions = useCallback(async (isRetry = false) => {
+  const fetchSuggestions = useCallback(async (isRetry = false, showTyping = true) => {
     try {
       setError(null);
-      if (!isRetry) {
+      
+      if (showTyping) {
         setIsLoading(true);
       } else {
         setIsLoadingNew(true);
@@ -61,6 +63,7 @@ const AISuggestion = ({ onOpenSidebar }) => {
         const suggestionText = response.suggestions.trim();
         setCurrentSuggestion(suggestionText);
         setHasData(true);
+        setHasInitialized(true);
       } else {
         throw new Error('Invalid response format from server');
       }
@@ -76,9 +79,14 @@ const AISuggestion = ({ onOpenSidebar }) => {
     }
   }, []);
 
+  // Initial suggestion fetch (manual trigger)
+  const getFirstSuggestion = useCallback(async () => {
+    await fetchSuggestions(false, true);
+  }, [fetchSuggestions]);
+
   // Get another suggestion
   const getAnotherSuggestion = useCallback(async () => {
-    if (isLoadingNew) return;
+    if (isLoadingNew || isLoading) return;
 
     // Add current suggestion to previous suggestions before getting a new one
     if (currentSuggestion) {
@@ -92,8 +100,8 @@ const AISuggestion = ({ onOpenSidebar }) => {
     }
 
     // Fetch new suggestion
-    await fetchSuggestions(true);
-  }, [currentSuggestion, fetchSuggestions, getFormattedTimestamp, isLoadingNew]);
+    await fetchSuggestions(true, false);
+  }, [currentSuggestion, fetchSuggestions, getFormattedTimestamp, isLoadingNew, isLoading]);
 
   // Toggle history visibility
   const toggleHistory = useCallback(() => {
@@ -138,17 +146,11 @@ const AISuggestion = ({ onOpenSidebar }) => {
 
   // Retry fetching suggestions
   const retrySuggestions = useCallback(() => {
-    fetchSuggestions(true);
+    fetchSuggestions(true, true);
   }, [fetchSuggestions]);
 
-  // Initial load
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchSuggestions();
-    }, 1500); // Maintain the original loading experience
-
-    return () => clearTimeout(timer);
-  }, [fetchSuggestions]);
+  // Removed automatic initial load - component now starts in idle state
+  // No useEffect for automatic fetching
 
   // Loading component
   const LoadingDots = () => (
@@ -171,10 +173,10 @@ const AISuggestion = ({ onOpenSidebar }) => {
       </p>
       <button
         onClick={retrySuggestions}
-        disabled={isLoadingNew}
+        disabled={isLoadingNew || isLoading}
         className="retry-button px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
       >
-        {isLoadingNew ? 'Retrying...' : 'Try Again'}
+        {isLoadingNew || isLoading ? 'Retrying...' : 'Try Again'}
       </button>
     </div>
   );
@@ -188,10 +190,36 @@ const AISuggestion = ({ onOpenSidebar }) => {
       </p>
       <button
         onClick={retrySuggestions}
-        disabled={isLoadingNew}
+        disabled={isLoadingNew || isLoading}
         className="retry-button px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
       >
-        {isLoadingNew ? 'Loading...' : 'Get Suggestions'}
+        {isLoadingNew || isLoading ? 'Loading...' : 'Get Suggestions'}
+      </button>
+    </div>
+  );
+
+  // Welcome/Initial state component
+  const WelcomeDisplay = () => (
+    <div className="welcome-container text-center p-6">
+      <div className="mb-4">
+        <FontAwesomeIcon icon={faLightbulb} className="h-12 w-12 text-purple-400 mb-3" />
+        <h3 className="text-xl font-semibold text-gray-700 mb-2">
+          Ready for AI Insights?
+        </h3>
+        <p className="text-gray-500 text-sm mb-6">
+          Get personalized suggestions based on your tasks and productivity patterns
+        </p>
+      </div>
+      <button
+        onClick={getFirstSuggestion}
+        disabled={isLoading}
+        className="get-started-button flex items-center justify-center px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 disabled:opacity-50 mx-auto"
+      >
+        <FontAwesomeIcon 
+          icon={faPlay} 
+          className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} 
+        />
+        {isLoading ? 'Getting Suggestions...' : 'Get My First Suggestion'}
       </button>
     </div>
   );
@@ -220,13 +248,16 @@ const AISuggestion = ({ onOpenSidebar }) => {
               <div className='w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-purple-400 to-indigo-600 flex items-center justify-center'>
                 <FontAwesomeIcon icon={faLightbulb} className='h-6 w-6 md:h-8 md:w-8 text-white' />
               </div>
-              <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${hasData ? 'bg-green-400 pulse' : 'bg-gray-400'
-                }`}></div>
+              <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
+                hasData ? 'bg-green-400 pulse' : hasInitialized ? 'bg-gray-400' : 'bg-blue-400'
+              }`}></div>
             </div>
 
             {/* Suggestion Text */}
             <div className='suggestion-card glass rounded-2xl p-6 md:p-8 w-full max-w-2xl shadow-lg'>
-              {isLoading ? (
+              {!hasInitialized ? (
+                <WelcomeDisplay />
+              ) : isLoading ? (
                 <LoadingDots />
               ) : error ? (
                 <ErrorDisplay />
@@ -237,7 +268,7 @@ const AISuggestion = ({ onOpenSidebar }) => {
                   "{currentSuggestion}"
                 </blockquote>
               )}
-
+              
               {isLoadingNew && hasData && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 rounded-2xl">
                   <LoadingDots />
@@ -264,10 +295,11 @@ const AISuggestion = ({ onOpenSidebar }) => {
               <button
                 onClick={addToNotes}
                 disabled={isAddingToNotes || isLoading}
-                className={`action-button flex items-center px-4 py-2 border border-gray-200 rounded-full shadow-sm transition-all duration-200 ${isAddingToNotes
-                    ? 'bg-purple-50 text-purple-700'
+                className={`action-button flex items-center px-4 py-2 border border-gray-200 rounded-full shadow-sm transition-all duration-200 ${
+                  isAddingToNotes 
+                    ? 'bg-purple-50 text-purple-700' 
                     : 'bg-white hover:bg-gray-50'
-                  }`}
+                }`}
               >
                 {isAddingToNotes ? (
                   <>
@@ -306,11 +338,12 @@ const AISuggestion = ({ onOpenSidebar }) => {
               </button>
             </div>
 
-            <div className={`history-container transition-all duration-300 overflow-hidden ${showHistory ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
-              }`}>
+            <div className={`history-container transition-all duration-300 overflow-hidden ${
+              showHistory ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
+            }`}>
               <div className='relative timeline pl-8'>
                 {previousSuggestions.map((suggestion, index) => (
-                  <div key={suggestion.id} className={`timeline-item relative mb-4 glass rounded-lg p-4 suggestion-card slide-in ${suggestion.addedToNotes ? 'border-l-4 border-purple-500' : ''}`} style={{ animationDelay: `${index * 0.1}s` }}>
+                  <div key={suggestion.id} className={`timeline-item relative mb-4 glass rounded-lg p-4 suggestion-card slide-in ${suggestion.addedToNotes ? 'border-l-4 border-purple-500' : ''}`} style={{animationDelay: `${index * 0.1}s`}}>
                     <div className='flex items-start justify-between'>
                       <p className='text-gray-700 flex-1'>"{suggestion.text}"</p>
                       {suggestion.addedToNotes && (
