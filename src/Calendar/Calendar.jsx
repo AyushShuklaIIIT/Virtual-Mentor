@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronRight, faPlus, faChevronLeft, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faChevronRight, faPlus, faChevronLeft, faTimes, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import './calendar.css';
 import HamburgerIcon from '../SVGs/HamburgerIcon';
 import { NavLink } from 'react-router-dom';
@@ -44,6 +44,7 @@ const Calendar = ({ onOpenSidebar }) => {
     const [selectedDate, setSelectedDate] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [modalLoading, setModalLoading] = useState(false);
 
     // Fetch tasks from the API with proper response handling
     const fetchTasks = async () => {
@@ -143,11 +144,10 @@ const Calendar = ({ onOpenSidebar }) => {
         setSelectedDate(null);
     };
 
-    // Updated to use correct property names
+    // Updated to refresh tasks after save operation
     const handleSaveTask = async (taskData) => {
+        setModalLoading(true);
         try {
-            let savedTask;
-            
             // Prepare API data with correct property names
             const apiData = {
                 title: taskData.title,
@@ -159,96 +159,53 @@ const Calendar = ({ onOpenSidebar }) => {
             
             if (taskData.id) {
                 // Update existing task
-                savedTask = await taskService.updateTask(taskData.id, apiData);
-                
-                // Optimistic update - handle both API and code property names
-                setTasks(prevTasks => 
-                    prevTasks.map(task => {
-                        if (task.id === taskData.id) {
-                            return {
-                                ...task,
-                                ...savedTask,
-                                // Ensure we have both property versions for UI compatibility
-                                dueDate: savedTask.duedate || savedTask.dueDate,
-                                duedate: savedTask.duedate || savedTask.dueDate,
-                                completed: savedTask.is_completed || savedTask.completed,
-                                is_completed: savedTask.is_completed || savedTask.completed,
-                                completedAt: savedTask.completed_at || savedTask.completedAt,
-                                completed_at: savedTask.completed_at || savedTask.completedAt
-                            };
-                        }
-                        return task;
-                    })
-                );
-                
+                await taskService.updateTask(taskData.id, apiData);
                 toast.success('Task updated successfully');
             } else {
                 // Create new task
-                savedTask = await taskService.createTask(apiData);
-                
-                // Ensure the saved task has both property versions for UI compatibility
-                const normalizedTask = {
-                    ...savedTask,
-                    dueDate: savedTask.duedate || savedTask.dueDate,
-                    duedate: savedTask.duedate || savedTask.dueDate,
-                    completed: savedTask.is_completed || savedTask.completed,
-                    is_completed: savedTask.is_completed || savedTask.completed,
-                    completedAt: savedTask.completed_at || savedTask.completedAt,
-                    completed_at: savedTask.completed_at || savedTask.completedAt
-                };
-                
-                // Optimistic update
-                setTasks(prevTasks => [...prevTasks, normalizedTask]);
-                
+                await taskService.createTask(apiData);
                 toast.success('Task created successfully');
             }
+            
             handleCloseModal();
+            
+            // Refresh the task list from the API
+            await fetchTasks();
+            
         } catch (error) {
             toast.error('Failed to save task. Please try again.');
             console.error('Error saving task:', error);
+        } finally {
+            setModalLoading(false);
         }
     };
 
     const handleDeleteTask = async (taskId) => {
         if (window.confirm('Are you sure you want to delete this task?')) {
+            setModalLoading(true);
             try {
-                // Optimistic update - remove from UI before API call completes
-                setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
-                
                 // Make the API call
                 await taskService.deleteTask(taskId);
                 
                 toast.success('Task deleted successfully');
                 handleCloseModal();
+                
+                // Refresh the task list from the API
+                await fetchTasks();
+                
             } catch (error) {
-                // Revert the optimistic update if the API call fails
-                fetchTasks();
                 toast.error('Failed to delete task. Please try again.');
                 console.error('Error deleting task:', error);
+            } finally {
+                setModalLoading(false);
             }
         }
     };
 
-    // Updated to use correct property names
+    // Updated to refresh tasks after toggle completion
     const handleToggleCompletion = async (taskId, currentStatus) => {
         try {
             const newCompletionStatus = !currentStatus;
-            
-            // Optimistic update with both property versions
-            setTasks(prevTasks => prevTasks.map(task => {
-                if (task.id === taskId) {
-                    const now = new Date().toISOString();
-                    return {
-                        ...task,
-                        // Update both property versions for UI compatibility
-                        is_completed: newCompletionStatus,
-                        completed: newCompletionStatus,
-                        completed_at: newCompletionStatus ? now : null,
-                        completedAt: newCompletionStatus ? now : null
-                    };
-                }
-                return task;
-            }));
             
             // Use the API's expected property name
             const updateData = {
@@ -259,9 +216,11 @@ const Calendar = ({ onOpenSidebar }) => {
             await taskService.updateTask(taskId, updateData);
             
             toast.success(`Task marked as ${newCompletionStatus ? 'completed' : 'pending'}`);
+            
+            // Refresh the task list from the API
+            await fetchTasks();
+            
         } catch (error) {
-            // Revert the optimistic update if the API call fails
-            fetchTasks();
             toast.error('Failed to update task status. Please try again.');
             console.error('Error toggling task completion:', error);
         }
@@ -336,6 +295,14 @@ const Calendar = ({ onOpenSidebar }) => {
                         Today
                     </button>
                 </div>
+                
+                {/* Loading indicator for when tasks are being refreshed */}
+                {loading && tasks.length > 0 && (
+                    <div className="flex items-center text-sm text-gray-600">
+                        <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+                        Updating tasks...
+                    </div>
+                )}
             </div>
 
             {/* --- Calendar Grid --- */}
@@ -351,16 +318,13 @@ const Calendar = ({ onOpenSidebar }) => {
                     <div className='grid grid-cols-7'>
                         {calendarDays.map(({ date, isDifferentMonth }) => {
                             const dateStr = formatDate(date);
-                            // Updated filtering to handle both property naming conventions
+                            // Updated filtering to handle backend property names
                             const tasksForDay = tasks.filter(t => {
                                 if (!t) return false;
                                 
-                                // Handle different property names (duedate from API vs dueDate in code)
-                                const taskDate = t.duedate ? getDateString(t.duedate) : 
-                                                t.dueDate ? getDateString(t.dueDate) : '';
-                                
-                                // Handle different property names (is_completed from API vs completed in code)
-                                const isCompleted = t.is_completed || t.completed;
+                                // Use backend property names (duedate, is_completed)
+                                const taskDate = t.duedate ? getDateString(t.duedate) : '';
+                                const isCompleted = t.is_completed || false;
                                 
                                 return taskDate === dateStr && !isCompleted;
                             });
@@ -395,16 +359,17 @@ const Calendar = ({ onOpenSidebar }) => {
                     onDelete={handleDeleteTask}
                     onToggleCompletion={handleToggleCompletion}
                     onClose={handleCloseModal}
+                    isLoading={modalLoading}
                 />
             )}
         </div>
     );
 };
 
-// Updated to handle both property naming conventions
+// Updated to handle backend property names
 const TaskChip = ({ task, onClick }) => {
-    // Extract time from ISO date string, handling both property names
-    const dueDate = task.duedate || task.dueDate;
+    // Extract time from ISO date string using backend property name
+    const dueDate = task.duedate;
     const timeDisplay = dueDate ? formatTimeFromISO(dueDate) + ' · ' : '';
 
     return (
@@ -420,8 +385,8 @@ const TaskChip = ({ task, onClick }) => {
     );
 };
 
-// Updated to handle both property naming conventions
-const TaskModal = ({ task, date, onSave, onDelete, onToggleCompletion, onClose }) => {
+// Updated to handle backend property names and loading state
+const TaskModal = ({ task, date, onSave, onDelete, onToggleCompletion, onClose, isLoading }) => {
     const isEditMode = !!task;
     
     // Initial form state
@@ -436,15 +401,15 @@ const TaskModal = ({ task, date, onSave, onDelete, onToggleCompletion, onClose }
         completed: false
     });
 
-    // Initialize form when task or date changes - handle both property naming conventions
+    // Initialize form when task or date changes - use backend property names
     useEffect(() => {
         if (isEditMode && task) {
-            // Parse date and time from dueDate for editing
+            // Parse date and time from duedate for editing
             let dateValue = date || formatDate(new Date());
             let timeValue = '';
             
-            // Handle both duedate and dueDate property names
-            const dueDateValue = task.duedate || task.dueDate;
+            // Use backend property name (duedate)
+            const dueDateValue = task.duedate;
             
             if (dueDateValue) {
                 try {
@@ -460,9 +425,9 @@ const TaskModal = ({ task, date, onSave, onDelete, onToggleCompletion, onClose }
                 }
             }
             
-            // Handle both is_completed/completed and completed_at/completedAt property names
-            const isCompleted = task.is_completed || task.completed || false;
-            const completionTime = task.completed_at || task.completedAt;
+            // Use backend property names (is_completed, completed_at)
+            const isCompleted = task.is_completed || false;
+            const completionTime = task.completed_at;
             
             setFormData({
                 id: task.id,
@@ -532,8 +497,8 @@ const TaskModal = ({ task, date, onSave, onDelete, onToggleCompletion, onClose }
 
     const handleToggle = () => {
         if (isEditMode) {
-            // For editing, use the API compatible is_completed/completed property
-            const currentStatus = task.is_completed || task.completed || false;
+            // For editing, use the backend property name (is_completed)
+            const currentStatus = task.is_completed || false;
             onToggleCompletion(task.id, currentStatus);
         } else {
             setFormData(prev => ({
@@ -557,7 +522,11 @@ const TaskModal = ({ task, date, onSave, onDelete, onToggleCompletion, onClose }
                     <h3 className='text-lg font-semibold text-gray-800'>
                         {isEditMode ? 'Edit Task' : 'Add Task'} for {modalDisplayDate}
                     </h3>
-                    <button className='text-gray-500 hover:text-gray-700' onClick={onClose}>
+                    <button 
+                        className='text-gray-500 hover:text-gray-700' 
+                        onClick={onClose}
+                        disabled={isLoading}
+                    >
                         <FontAwesomeIcon icon={faTimes} />
                     </button>
                 </div>
@@ -572,7 +541,8 @@ const TaskModal = ({ task, date, onSave, onDelete, onToggleCompletion, onClose }
                             value={formData.title} 
                             onChange={handleChange} 
                             required 
-                            className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500'
+                            disabled={isLoading}
+                            className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100'
                             placeholder='Enter task title'
                         />
                     </div>
@@ -585,7 +555,8 @@ const TaskModal = ({ task, date, onSave, onDelete, onToggleCompletion, onClose }
                             value={formData.description} 
                             onChange={handleChange} 
                             rows={3} 
-                            className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500'
+                            disabled={isLoading}
+                            className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100'
                             placeholder='Enter task description'
                         />
                     </div>
@@ -598,7 +569,8 @@ const TaskModal = ({ task, date, onSave, onDelete, onToggleCompletion, onClose }
                                 id="taskPriority" 
                                 value={formData.priority} 
                                 onChange={handleChange} 
-                                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500'
+                                disabled={isLoading}
+                                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100'
                             >
                                 <option value="low">Low</option>
                                 <option value="medium">Medium</option>
@@ -612,7 +584,8 @@ const TaskModal = ({ task, date, onSave, onDelete, onToggleCompletion, onClose }
                                 id="taskTag" 
                                 value={formData.tag} 
                                 onChange={handleChange} 
-                                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500'
+                                disabled={isLoading}
+                                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100'
                             >
                                 <option value="work">Work</option>
                                 <option value="personal">Personal</option>
@@ -630,7 +603,8 @@ const TaskModal = ({ task, date, onSave, onDelete, onToggleCompletion, onClose }
                                 id='taskDueDate' 
                                 value={formData.dueDate} 
                                 onChange={handleChange} 
-                                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500'
+                                disabled={isLoading}
+                                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100'
                             />
                         </div>
                         <div>
@@ -641,7 +615,8 @@ const TaskModal = ({ task, date, onSave, onDelete, onToggleCompletion, onClose }
                                 id="taskTime" 
                                 value={formData.time} 
                                 onChange={handleChange} 
-                                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500'
+                                disabled={isLoading}
+                                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100'
                             />
                         </div>
                     </div>
@@ -652,12 +627,13 @@ const TaskModal = ({ task, date, onSave, onDelete, onToggleCompletion, onClose }
                             id="taskCompleted" 
                             checked={formData.completed} 
                             onChange={handleToggle} 
+                            disabled={isLoading}
                             className='mr-2' 
                         />
                         <label htmlFor='taskCompleted' className='text-sm font-medium text-gray-700'>Mark as completed</label>
-                        {isEditMode && (formData.completed || formData.is_completed) && (formData.completedAt || formData.completed_at) && (
+                        {isEditMode && formData.completed && formData.completedAt && (
                             <span className='ml-4 text-xs text-green-500'>
-                                Completed at: {new Date(formData.completedAt || formData.completed_at).toLocaleString()}
+                                Completed at: {new Date(formData.completedAt).toLocaleString()}
                             </span>
                         )}
                     </div>
@@ -666,17 +642,25 @@ const TaskModal = ({ task, date, onSave, onDelete, onToggleCompletion, onClose }
                         {isEditMode && (
                             <button 
                                 type='button' 
-                                className='btn px-4 py-2 border border-red-500 text-red-500 rounded-lg font-medium' 
+                                className='btn px-4 py-2 border border-red-500 text-red-500 rounded-lg font-medium hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center' 
                                 onClick={() => onDelete(task.id)}
+                                disabled={isLoading}
                             >
+                                {isLoading ? (
+                                    <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+                                ) : null}
                                 Delete
                             </button>
                         )}
                         <button 
                             type='submit' 
-                            className='btn btn-primary px-4 py-2 text-white rounded-lg font-medium ml-auto'
+                            className='btn btn-primary px-4 py-2 text-white rounded-lg font-medium ml-auto hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center'
+                            disabled={isLoading}
                         >
-                            Save Task
+                            {isLoading ? (
+                                <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+                            ) : null}
+                            {isLoading ? 'Saving...' : 'Save Task'}
                         </button>
                     </div>
                 </form>
