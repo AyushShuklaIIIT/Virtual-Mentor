@@ -49,18 +49,19 @@ const AISuggestion = () => {
     });
 
     // Add to notes
-    document.getElementById('add-notes').addEventListener('click', () => {
-      this.classList.remove('bg-white');
-      this.classList.add('bg-purple-50');
-      this.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    document.getElementById('add-notes').addEventListener('click', (e) => {
+      const btn = e.currentTarget;
+      btn.classList.remove('bg-white');
+      btn.classList.add('bg-purple-50');
+      btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
       </svg>
       Added to notes
       `;
       setTimeout(() => {
-        this.classList.remove('bg-purple-50');
-        this.classList.add('bg-white');
-        this.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        btn.classList.remove('bg-purple-50');
+        btn.classList.add('bg-white');
+        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 00" />
         </svg>
         Add to Task Notes
