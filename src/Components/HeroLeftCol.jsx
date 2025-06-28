@@ -27,34 +27,6 @@ const HeroLeftCol = () => {
           See Demo
         </a>
       </div>
-
-      <div className='mt-10 flex items-center space-x-6'>
-        <div className='flex -space-x-2'>
-          <img
-            className='w-8 h-8 rounded-full ring-2 ring-white'
-            src='https://api.dicebear.com/7.x/initials/svg?seed=AS'
-            alt='User A'
-          />
-          <img
-            className='w-8 h-8 rounded-full ring-2 ring-white'
-            src='https://api.dicebear.com/7.x/initials/svg?seed=AA'
-            alt='User B'
-          />
-          <img
-            className='w-8 h-8 rounded-full ring-2 ring-white'
-            src='https://api.dicebear.com/7.x/initials/svg?seed=AM'
-            alt='User C'
-          />
-          <img
-            className='w-8 h-8 rounded-full ring-2 ring-white'
-            src='https://api.dicebear.com/7.x/initials/svg?seed=GS'
-            alt='User D'
-          />
-        </div>
-        <div className='text-sm text-gray-600'>
-          <span className='font-semibold text-gray-800'>10,000+</span> users already joined
-        </div>
-      </div>
     </div>
   )
 }
