@@ -57,7 +57,7 @@ const Signup = () => {
             console.log('User registered: ', data);
             setError('');
             setformData({fullName: '', email: '', password: '', confirmPassword: ''});
-            navigate('/dashboard');
+            navigate('/login');
         } catch (err) {
             console.error('Error during signup: ', err);
             setError('Something went wrong. Please try again.');

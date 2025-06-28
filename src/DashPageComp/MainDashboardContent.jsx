@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import Progress from '../SVGs/Progress'
 import MainContentLeftCol from './MainContentLeftCol'
 import MainContentRightCol from './MainContentRightCol'
+import taskService from '../api/taskService'
+import { toast } from 'react-toastify'
 
 function getGreeting() {
     const hour = new Date().getHours();
@@ -26,9 +28,9 @@ function getCurrentStreak(tasks) {
         const day = new Date(today);
         day.setDate(today.getDate() - i);
         const completed = tasks.some(t =>
-            t.completed &&
-            t.completedAt &&
-            normalizeToLocalDate(t.completedAt).getTime() === day.getTime()
+            t.is_completed &&
+            t.completed_at &&
+            normalizeToLocalDate(t.completed_at).getTime() === day.getTime()
         );
         if (completed) {
             streak++;
@@ -47,16 +49,14 @@ function getStreakHistory(tasks, days = 7) {
         const day = new Date(today);
         day.setDate(today.getDate() - i);
         const completed = tasks.some(t =>
-            t.completed &&
-            t.completedAt &&
-            normalizeToLocalDate(t.completedAt).getTime() === day.getTime()
+            t.is_completed &&
+            t.completed_at &&
+            normalizeToLocalDate(t.completed_at).getTime() === day.getTime()
         );
         history.push(completed);
     }
     return history;
 }
-
-const LOCAL_STORAGE_KEY = 'virtualMentorTasks';
 
 const MainDashboardContent = () => {
     const [greeting, setGreeting] = useState(getGreeting());
@@ -65,25 +65,53 @@ const MainDashboardContent = () => {
     const [personalBest, setPersonalBest] = useState(0);
     const [percentCompleted, setPercentCompleted] = useState(0);
     const [streakHistory, setStreakHistory] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [userName, setUserName] = useState('John'); // Default name, could be fetched from user profile
 
+    // Update greeting based on time
     useEffect(() => {
-        // Update greeting when time changes
         const interval = setInterval(() => setGreeting(getGreeting()), 60 * 1000);
         return () => clearInterval(interval);
     }, []);
 
-    useEffect(() => {
-        // Load all tasks
-        const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-        let allTasks = [];
-        if (stored) {
-            try {
-                allTasks = JSON.parse(stored);
-            } catch {
-                allTasks = [];
-            }
-        }
+    // Fetch tasks from the API
+    const fetchTasks = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await taskService.getAllTasks();
+            console.log("API Response:", response);
+            let tasks = [];
 
+            
+            if (response && typeof response === 'object' && Array.isArray(response.tasks)) {
+                tasks = response.tasks;
+            }
+           
+            else if (Array.isArray(response)) {
+                tasks = response;
+            }
+           
+            else if (response && typeof response === 'object') {
+                tasks = response.data || response.result || [];
+            }
+
+            
+            console.log("Extracted tasks:", tasks);
+
+            processTaskData(tasks);
+        } catch (err) {
+            console.error('Error fetching tasks:', err);
+            setError('Failed to load task data. Please try again.');
+            toast.error('Failed to load dashboard data');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    // Process task data to calculate statistics
+    const processTaskData = useCallback((allTasks) => {
         // Calculate start and end of week (Monday-Sunday)
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -100,13 +128,13 @@ const MainDashboardContent = () => {
 
         // All tasks due this week
         const tasksThisWeek = allTasks.filter(t =>
-            t.dueDate &&
-            normalizeToLocalDate(t.dueDate) >= weekStart &&
-            normalizeToLocalDate(t.dueDate) <= weekEnd
+            t.duedate &&
+            normalizeToLocalDate(new Date(t.duedate)) >= weekStart &&
+            normalizeToLocalDate(new Date(t.duedate)) <= weekEnd
         );
 
         // Of those, how many are completed
-        const completedThisWeek = tasksThisWeek.filter(t => t.completed).length;
+        const completedThisWeek = tasksThisWeek.filter(t => t.is_completed).length;
 
         setTasksCompleted(completedThisWeek);
 
@@ -122,8 +150,8 @@ const MainDashboardContent = () => {
         let best = 0, current = 0;
         const completedDatesSet = new Set(
             allTasks
-                .filter(t => t.completed && t.completedAt)
-                .map(t => normalizeToLocalDate(t.completedAt).getTime())
+                .filter(t => t.is_completed && t.completed_at)
+                .map(t => normalizeToLocalDate(new Date(t.completed_at)).getTime())
         );
         const allDates = Array.from(completedDatesSet).sort((a, b) => a - b);
         if (allDates.length) {
@@ -146,15 +174,52 @@ const MainDashboardContent = () => {
         setStreakHistory(getStreakHistory(allTasks, 7));
     }, []);
 
+    // Load task data on mount
+    useEffect(() => {
+        fetchTasks();
+    }, [fetchTasks]);
+
     // Always render Mon-Sun left to right (no reordering)
     const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    // Loading state
+    if (loading && !tasksCompleted && !currentStreak) {
+        return (
+            <main className='flex-1 overflow-y-auto bg-gray-50 p-4'>
+                <div className='max-w-7xl mx-auto'>
+                    <div className="flex justify-center items-center w-full h-64">
+                        <div className="w-16 h-16 border-4 border-t-4 border-gray-200 border-t-purple-500 rounded-full animate-spin"></div>
+                    </div>
+                </div>
+            </main>
+        );
+    }
+
+    // Error state
+    if (error) {
+        return (
+            <main className='flex-1 overflow-y-auto bg-gray-50 p-4'>
+                <div className='max-w-7xl mx-auto'>
+                    <div className="flex flex-col justify-center items-center w-full h-64">
+                        <div className="text-red-500 text-xl mb-4">Failed to load dashboard data</div>
+                        <button
+                            onClick={fetchTasks}
+                            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                        >
+                            Retry
+                        </button>
+                    </div>
+                </div>
+            </main>
+        );
+    }
 
     return (
         <main className='flex-1 overflow-y-auto bg-gray-50 p-4'>
             <div className='max-w-7xl mx-auto'>
                 {/* Welcome Section */}
                 <div className='mb-6'>
-                    <h2 className='text-2xl font-bold mb-1'>{greeting}, John!</h2>
+                    <h2 className='text-2xl font-bold mb-1'>{greeting}, {userName}!</h2>
                     <p className='text-[#64748b]'>Here's what's happening with your tasks today.</p>
                 </div>
 

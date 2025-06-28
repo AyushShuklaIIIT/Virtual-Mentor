@@ -9,48 +9,121 @@ const handleResponse = async (response) => {
   
   const contentType = response.headers.get('content-type');
   if (contentType?.includes('application/json')) {
-    const jsonResponse = await response.json().tasks;
+    const jsonResponse = await response.json();
     console.log('Response JSON:', jsonResponse);
-    return jsonResponse;
+    return jsonResponse; 
   }
   
-  return true; // For successful requests with no content
+  return true;
 };
 
 const getHeaders = () => ({
   'Content-Type': 'application/json',
 });
 
+const CACHE_DURATION = 6000;
+
 const taskService = {
+  // Cache storage
+  _cache: {
+    allTasks: {
+      data: null,
+      timestamp: null
+    },
+    taskById: {
+      
+    }
+  },
+  
+  
+  _isCacheValid(cacheEntry) {
+    return (
+      cacheEntry?.data && 
+      cacheEntry?.timestamp && 
+      (new Date() - cacheEntry.timestamp) < CACHE_DURATION
+    );
+  },
+  
+    invalidateCache(taskId) {
+    if (taskId) {
+      console.log(`🗑️ Invalidating cache for task ${taskId}`);
+      if (this._cache.taskById[taskId]) {
+        this._cache.taskById[taskId] = { data: null, timestamp: null };
+      }
+    } else {
+      console.log('🗑️ Invalidating all task cache');
+      this._cache.allTasks = { data: null, timestamp: null };
+      this._cache.taskById = {};
+    }
+  },
+
+  
   getAllTasks: async () => {
     try {
+      
+      if (taskService._isCacheValid(taskService._cache.allTasks)) {
+        console.log('Using cached tasks data');
+        return taskService._cache.allTasks.data;
+      }
+      
+      console.log('📡 Fetching fresh tasks data from API');
       const response = await fetch(`${API_BASE_URL}/task/getall`, {
         method: 'GET',
         headers: getHeaders(),
-        credentials: 'include' // Important: include cookies in the request
+        credentials: 'include' 
       });
-      return handleResponse(response);
+      
+      const responseData = await handleResponse(response);
+      
+      
+      const tasksData = responseData?.tasks ?? [];
+      
+      
+      taskService._cache.allTasks = {
+        data: tasksData,
+        timestamp: new Date()
+      };
+      
+      return tasksData;
     } catch (error) {
       console.error('Error fetching tasks:', error);
       throw error;
     }
   },
   
+
   getTaskById: async (taskId) => {
     try {
+      
+      const cacheEntry = taskService._cache.taskById[taskId];
+      if (taskService._isCacheValid(cacheEntry)) {
+        console.log(`🔄 Using cached data for task ${taskId}`);
+        return cacheEntry.data;
+      }
+      
+      console.log(`📡 Fetching fresh data for task ${taskId}`);
       const response = await fetch(`${API_BASE_URL}/task/get/${taskId}`, {
         method: 'GET',
         headers: getHeaders(),
         credentials: 'include'
       });
-      return handleResponse(response);
+      
+      const taskData = await handleResponse(response);
+      
+      
+      taskService._cache.taskById[taskId] = {
+        data: taskData,
+        timestamp: new Date()
+      };
+      
+      return taskData;
     } catch (error) {
       console.error(`Error fetching task ${taskId}:`, error);
       throw error;
     }
   },
   
-  // Create a new task
+ 
   createTask: async (taskData) => {
     try {
       const response = await fetch(`${API_BASE_URL}/task/add`, {
@@ -59,14 +132,20 @@ const taskService = {
         credentials: 'include',
         body: JSON.stringify(taskData)
       });
-      return handleResponse(response);
+      
+      const newTask = await handleResponse(response);
+      
+      
+      taskService.invalidateCache();
+      
+      return newTask;
     } catch (error) {
       console.error('Error creating task:', error);
       throw error;
     }
   },
   
-  // Update an existing task
+
   updateTask: async (taskId, taskData) => {
     try {
       const response = await fetch(`${API_BASE_URL}/task/update/${taskId}`, {
@@ -75,30 +154,43 @@ const taskService = {
         credentials: 'include',
         body: JSON.stringify(taskData)
       });
-      return handleResponse(response);
+      
+      const updatedTask = await handleResponse(response);
+      
+      taskService.invalidateCache(taskId);
+      taskService.invalidateCache();
+      
+      return updatedTask;
     } catch (error) {
       console.error(`Error updating task ${taskId}:`, error);
       throw error;
     }
   },
   
-  // Toggle task completion status
-  toggleTaskCompletion: async (taskId, taskData) => {
+
+  toggleTaskCompletion: async (taskId, isCompleted) => {
     try {
+      const taskData = { is_completed: isCompleted };
+      
       const response = await fetch(`${API_BASE_URL}/task/update/${taskId}`, {
         method: 'PATCH',
         headers: getHeaders(),
         credentials: 'include',
         body: JSON.stringify(taskData)
       });
-      return handleResponse(response);
+      
+      const updatedTask = await handleResponse(response);
+      
+      taskService.invalidateCache(taskId);
+      taskService.invalidateCache();
+      
+      return updatedTask;
     } catch (error) {
       console.error(`Error toggling completion for task ${taskId}:`, error);
       throw error;
     }
   },
   
-  // Delete a task
   deleteTask: async (taskId) => {
     try {
       const response = await fetch(`${API_BASE_URL}/task/delete/${taskId}`, {
@@ -106,7 +198,13 @@ const taskService = {
         headers: getHeaders(),
         credentials: 'include'
       });
-      return handleResponse(response);
+      
+      const result = await handleResponse(response);
+      
+      taskService.invalidateCache(taskId);
+      taskService.invalidateCache();
+      
+      return result;
     } catch (error) {
       console.error(`Error deleting task ${taskId}:`, error);
       throw error;

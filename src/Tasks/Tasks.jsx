@@ -20,63 +20,74 @@ const formatDate = date => {
 const formatDateForDisplay = dateString => {
   if (!dateString) return '';
 
-  const date = new Date(dateString);
-  const today = new Date();
-  const tomorrow = new Date();
-  tomorrow.setDate(today.getDate() + 1);
-
-  if (formatDate(date) === formatDate(today)) {
-    return 'Today';
+  try {
+    const date = new Date(dateString);
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
+  
+    if (formatDate(date) === formatDate(today)) {
+      return 'Today';
+    }
+  
+    if (formatDate(date) === formatDate(tomorrow)) {
+      return 'Tomorrow';
+    }
+  
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch (e) {
+    console.warn('Error formatting date for display:', e);
+    return '';
   }
-
-  if (formatDate(date) === formatDate(tomorrow)) {
-    return 'Tomorrow';
-  }
-
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric'
-  });
 };
 
 const formatTimeForDisplay = dateString => {
   if (!dateString) return '';
 
-  const date = new Date(dateString);
-  const hours = date.getHours();
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  const hour12 = hours % 12 || 12;
-
-  return `${hour12}:${minutes} ${ampm}`;
+  try {
+    const date = new Date(dateString);
+    const hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = hours % 12 || 12;
+  
+    return `${hour12}:${minutes} ${ampm}`;
+  } catch (e) {
+    console.warn('Error formatting time for display:', e);
+    return '';
+  }
 };
 
+// Using only API property names throughout the component
 const TaskCard = ({ task, onToggleComplete, onEdit, onDelete }) => {
   const tag = task.tag || '';
   const priority = task.priority || '';
-  const dueDate = task.dueDate || '';
-  const completed = task.completed || false;
+  const duedate = task.duedate || '';
+  const is_completed = task.is_completed || false;
 
   return (
-    <div className={`task-card p-4 priority-${priority} ${completed ? 'opacity-50' : ''} fade-in`}>
+    <div className={`task-card p-4 priority-${priority} ${is_completed ? 'opacity-50' : ''} fade-in`}>
       <div className="flex items-start justify-between">
         <div className="flex-grow pr-4">
           <div className="flex items-center mb-1">
-            <h3 className={`font-medium text-gray-800 ${completed ? 'line-through' : ''}`}>
+            <h3 className={`font-medium text-gray-800 ${is_completed ? 'line-through' : ''}`}>
               {task.title}
             </h3>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 mb-2">
-            {dueDate && (
+            {duedate && (
               <div className="flex items-center">
                 <FontAwesomeIcon icon={faCalendar} className="mr-1 text-gray-400" />
-                <span>{formatDateForDisplay(dueDate)}</span>
+                <span>{formatDateForDisplay(duedate)}</span>
               </div>
             )}
-            {dueDate && (
+            {duedate && (
               <div className="flex items-center ml-3">
                 <FontAwesomeIcon icon={faClock} className="mr-1 text-gray-400" />
-                <span>{formatTimeForDisplay(dueDate)}</span>
+                <span>{formatTimeForDisplay(duedate)}</span>
               </div>
             )}
           </div>
@@ -91,7 +102,7 @@ const TaskCard = ({ task, onToggleComplete, onEdit, onDelete }) => {
                 {priority.charAt(0).toUpperCase() + priority.slice(1)}
               </span>
             )}
-            {completed && (
+            {is_completed && (
               <span className="priority-badge" style={{ backgroundColor: '#e0e7ff', color: '#4f46e5' }}>
                 Completed
               </span>
@@ -102,10 +113,10 @@ const TaskCard = ({ task, onToggleComplete, onEdit, onDelete }) => {
           <button
             className="action-btn complete"
             onClick={() => onToggleComplete(task.id)}
-            title={completed ? 'Mark as pending' : 'Mark as Complete'}
+            title={is_completed ? 'Mark as pending' : 'Mark as Complete'}
           >
             <FontAwesomeIcon
-              icon={completed ? faUndo : faCheck}
+              icon={is_completed ? faUndo : faCheck}
               className="text-gray-500"
             />
           </button>
@@ -169,36 +180,41 @@ const TaskModal = ({
     id: '',
     title: '',
     description: '',
-    dueDate: formatDate(new Date()),
+    dueDate: formatDate(new Date()), // Using camelCase here for form control
     time: '',
     priority: 'medium',
     tag: 'work'
   });
 
+  // Updated to use API property names
   useEffect(() => {
     if (taskToEdit) {
-      // Parse date and time from dueDate for editing
+      // Parse date and time from duedate for editing
       let date = formatDate(new Date());
       let time = '';
       
-      if (taskToEdit.dueDate) {
-        const dueDate = new Date(taskToEdit.dueDate);
-        date = formatDate(dueDate);
-        
-        // Format time as HH:MM for input
-        const hours = String(dueDate.getHours()).padStart(2, '0');
-        const minutes = String(dueDate.getMinutes()).padStart(2, '0');
-        time = `${hours}:${minutes}`;
+      if (taskToEdit.duedate) {
+        try {
+          const dueDate = new Date(taskToEdit.duedate);
+          date = formatDate(dueDate);
+          
+          // Format time as HH:MM for input
+          const hours = String(dueDate.getHours()).padStart(2, '0');
+          const minutes = String(dueDate.getMinutes()).padStart(2, '0');
+          time = `${hours}:${minutes}`;
+        } catch (e) {
+          console.warn('Error parsing date:', e);
+        }
       }
       
       setFormData({
         id: taskToEdit.id,
-        title: taskToEdit.title,
+        title: taskToEdit.title || '',
         description: taskToEdit.description || '',
         dueDate: date,
         time: time,
-        priority: taskToEdit.priority,
-        tag: taskToEdit.tag
+        priority: taskToEdit.priority || 'medium',
+        tag: taskToEdit.tag || 'work'
       });
     } else {
       setFormData({
@@ -226,21 +242,26 @@ const TaskModal = ({
     
     let combinedDueDate = null;
     if (dueDate) {
-      if (time) {
-        // Combine date and time into ISO format
-        const [year, month, day] = dueDate.split('-');
-        const [hours, minutes] = time.split(':');
-        combinedDueDate = new Date(year, month - 1, day, hours, minutes).toISOString();
-      } else {
-        // Use only date with default time (beginning of day)
-        const [year, month, day] = dueDate.split('-');
-        combinedDueDate = new Date(year, month - 1, day).toISOString();
+      try {
+        if (time) {
+          // Combine date and time into ISO format
+          const [year, month, day] = dueDate.split('-');
+          const [hours, minutes] = time.split(':');
+          combinedDueDate = new Date(year, month - 1, day, hours, minutes).toISOString();
+        } else {
+          // Use only date with default time (beginning of day)
+          const [year, month, day] = dueDate.split('-');
+          combinedDueDate = new Date(year, month - 1, day).toISOString();
+        }
+      } catch (e) {
+        console.warn('Error creating date:', e);
       }
     }
     
+    // Use the API property name 'duedate' for backend
     onSave({
       ...restData,
-      dueDate: combinedDueDate
+      duedate: combinedDueDate
     });
   };
 
@@ -406,8 +427,24 @@ const Tasks = ({ onOpenSidebar }) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await taskService.getAllTasks();
-      setTasks(data);
+      const response = await taskService.getAllTasks();
+      console.log('Tasks response:', response);
+      
+      // Extract tasks array from the API response
+      let tasksArray = [];
+      if (Array.isArray(response)) {
+        tasksArray = response;
+      } else if (response && typeof response === 'object') {
+        // Check for the tasks property (from API format)
+        if (Array.isArray(response.tasks)) {
+          tasksArray = response.tasks;
+        } else {
+          // Fallback to other common patterns
+          tasksArray = response.data || response.result || [];
+        }
+      }
+      
+      setTasks(tasksArray);
     } catch (error) {
       setError('Failed to fetch tasks. Please try again later.');
       console.error('Error fetching tasks:', error);
@@ -421,26 +458,32 @@ const Tasks = ({ onOpenSidebar }) => {
     fetchTasks();
   }, [fetchTasks]);
 
-  // Calculate tasks due today
+  // Calculate tasks due today - updated to use API property names
   useEffect(() => {
     const today = formatDate(new Date());
     const count = tasks.filter(task => {
-      if (!task.dueDate || task.completed) return false;
-      const taskDate = formatDate(new Date(task.dueDate));
-      return taskDate === today;
+      if (!task.duedate || task.is_completed) return false;
+      
+      try {
+        const taskDate = formatDate(new Date(task.duedate));
+        return taskDate === today;
+      } catch (e) {
+        console.warn('Error parsing due date:', e);
+        return false;
+      }
     }).length;
     
     setTasksToday(count);
   }, [tasks]);
 
-  // Filter tasks based on current filters and search query
+  // Filter tasks based on current filters and search query - updated to use API property names
   const filteredTasks = useCallback(() => {
     let filtered = [...tasks];
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(task =>
-        task.title.toLowerCase().includes(query) ||
+        (task.title && task.title.toLowerCase().includes(query)) ||
         (task.description && task.description.toLowerCase().includes(query))
       );
     }
@@ -456,30 +499,46 @@ const Tasks = ({ onOpenSidebar }) => {
       switch (filters.date) {
         case 'today':
           filtered = filtered.filter(task => {
-            if (!task.dueDate) return false;
-            const taskDate = formatDate(new Date(task.dueDate));
-            return taskDate === today;
+            if (!task.duedate) return false;
+            try {
+              const taskDate = formatDate(new Date(task.duedate));
+              return taskDate === today;
+            } catch (e) {
+              return false;
+            }
           });
           break;
         case 'tomorrow':
           filtered = filtered.filter(task => {
-            if (!task.dueDate) return false;
-            const taskDate = formatDate(new Date(task.dueDate));
-            return taskDate === tomorrow;
+            if (!task.duedate) return false;
+            try {
+              const taskDate = formatDate(new Date(task.duedate));
+              return taskDate === tomorrow;
+            } catch (e) {
+              return false;
+            }
           });
           break;
         case 'week':
           filtered = filtered.filter(task => {
-            if (!task.dueDate) return false;
-            const taskDate = formatDate(new Date(task.dueDate));
-            return taskDate >= weekStart && taskDate <= weekEnd;
+            if (!task.duedate) return false;
+            try {
+              const taskDate = formatDate(new Date(task.duedate));
+              return taskDate >= weekStart && taskDate <= weekEnd;
+            } catch (e) {
+              return false;
+            }
           });
           break;
         case 'month':
           filtered = filtered.filter(task => {
-            if (!task.dueDate) return false;
-            const taskDate = formatDate(new Date(task.dueDate));
-            return taskDate >= monthStart && taskDate <= monthEnd;
+            if (!task.duedate) return false;
+            try {
+              const taskDate = formatDate(new Date(task.duedate));
+              return taskDate >= monthStart && taskDate <= monthEnd;
+            } catch (e) {
+              return false;
+            }
           });
           break;
         default:
@@ -493,7 +552,7 @@ const Tasks = ({ onOpenSidebar }) => {
 
     if (filters.status !== 'all') {
       const isCompleted = filters.status === 'completed';
-      filtered = filtered.filter(task => task.completed === isCompleted);
+      filtered = filtered.filter(task => task.is_completed === isCompleted);
     }
 
     if (filters.tag !== 'all') {
@@ -503,12 +562,12 @@ const Tasks = ({ onOpenSidebar }) => {
     switch (sortBy) {
       case 'date':
         filtered.sort((a, b) => {
-          // Handle cases where dueDate might be null
-          if (!a.dueDate && !b.dueDate) return 0;
-          if (!a.dueDate) return 1;
-          if (!b.dueDate) return -1;
+          // Handle cases where duedate might be null
+          if (!a.duedate && !b.duedate) return 0;
+          if (!a.duedate) return 1;
+          if (!b.duedate) return -1;
           
-          return new Date(a.dueDate) - new Date(b.dueDate);
+          return new Date(a.duedate) - new Date(b.duedate);
         });
         break;
       case 'priority': {
@@ -517,7 +576,14 @@ const Tasks = ({ onOpenSidebar }) => {
         break;
       }
       case 'recent':
-        filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        filtered.sort((a, b) => {
+          // Use created_at for sorting by recent
+          if (!a.created_at && !b.created_at) return 0;
+          if (!a.created_at) return 1;
+          if (!b.created_at) return -1;
+          
+          return new Date(b.created_at) - new Date(a.created_at);
+        });
         break;
       default:
         break;
@@ -526,27 +592,27 @@ const Tasks = ({ onOpenSidebar }) => {
     return filtered;
   }, [tasks, searchQuery, filters, sortBy]);
 
-  // Toggle task completion - now with API call
+  // Toggle task completion - updated to use API property names
   const toggleTaskCompletion = async (taskId) => {
     try {
       const taskToToggle = tasks.find(task => task.id === taskId);
       if (!taskToToggle) return;
       
-      const newCompletionStatus = !taskToToggle.completed;
+      const newCompletionStatus = !taskToToggle.is_completed;
       
       // Optimistic update - update UI before API call completes
       setTasks(prevTasks => prevTasks.map(task => {
         if (task.id === taskId) {
           return {
             ...task,
-            completed: newCompletionStatus,
-            completedAt: newCompletionStatus ? new Date().toISOString() : null
+            is_completed: newCompletionStatus,
+            completed_at: newCompletionStatus ? new Date().toISOString() : null
           };
         }
         return task;
       }));
       
-      // Make the API call
+      // Make the API call with the correct property name
       await taskService.toggleTaskCompletion(taskId, newCompletionStatus);
       
       toast.success(`Task marked as ${newCompletionStatus ? 'completed' : 'pending'}`);
@@ -598,17 +664,18 @@ const Tasks = ({ onOpenSidebar }) => {
     }
   };
 
-  // Save a task (create or update)
+  // Save a task (create or update) - updated to use API property names
   const handleSaveTask = async (taskData) => {
     try {
       let savedTask;
       
+      // We're now using the API property name 'duedate' directly
       if (taskData.id) {
-        // Update existing task - backend will handle completed and completedAt fields
+        // Update existing task
         savedTask = await taskService.updateTask(taskData.id, {
           title: taskData.title,
           description: taskData.description,
-          dueDate: taskData.dueDate,
+          duedate: taskData.duedate,
           priority: taskData.priority,
           tag: taskData.tag
         });
@@ -620,11 +687,11 @@ const Tasks = ({ onOpenSidebar }) => {
         
         toast.success('Task updated successfully');
       } else {
-        // Create new task - backend will handle id, completed, completedAt fields
+        // Create new task
         savedTask = await taskService.createTask({
           title: taskData.title,
           description: taskData.description,
-          dueDate: taskData.dueDate,
+          duedate: taskData.duedate,
           priority: taskData.priority,
           tag: taskData.tag
         });

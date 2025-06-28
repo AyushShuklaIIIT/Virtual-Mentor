@@ -27,8 +27,13 @@ const getDateString = (isoString) => {
 // Format time from ISO string
 const formatTimeFromISO = (isoString) => {
     if (!isoString) return '';
-    const date = new Date(isoString);
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    try {
+        const date = new Date(isoString);
+        return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    } catch (e) {
+        console.warn('Error formatting time:', e);
+        return '';
+    }
 };
 
 const Calendar = ({ onOpenSidebar }) => {
@@ -40,13 +45,30 @@ const Calendar = ({ onOpenSidebar }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Fetch tasks from the API
+    // Fetch tasks from the API with proper response handling
     const fetchTasks = async () => {
         setLoading(true);
         setError(null);
         try {
-            const data = await taskService.getAllTasks();
-            setTasks(data);
+            const response = await taskService.getAllTasks();
+            console.log("Calendar API Response:", response);
+            
+            // Extract tasks array from the API response
+            let tasksArray = [];
+            if (Array.isArray(response)) {
+                tasksArray = response;
+            } else if (response && typeof response === 'object') {
+                // Check for the tasks property (from your API format)
+                if (Array.isArray(response.tasks)) {
+                    tasksArray = response.tasks;
+                } else {
+                    // Fallback to other common patterns
+                    tasksArray = response.data || response.result || [];
+                }
+            }
+            
+            console.log("Extracted tasks for calendar:", tasksArray);
+            setTasks(tasksArray);
         } catch (error) {
             setError('Failed to fetch tasks. Please try again later.');
             console.error('Error fetching tasks:', error);
@@ -121,38 +143,62 @@ const Calendar = ({ onOpenSidebar }) => {
         setSelectedDate(null);
     };
 
+    // Updated to use correct property names
     const handleSaveTask = async (taskData) => {
         try {
             let savedTask;
             
+            // Prepare API data with correct property names
+            const apiData = {
+                title: taskData.title,
+                description: taskData.description,
+                duedate: taskData.dueDate, // API expects 'duedate' (lowercase)
+                priority: taskData.priority,
+                tag: taskData.tag
+            };
+            
             if (taskData.id) {
                 // Update existing task
-                savedTask = await taskService.updateTask(taskData.id, {
-                    title: taskData.title,
-                    description: taskData.description,
-                    dueDate: taskData.dueDate,
-                    priority: taskData.priority,
-                    tag: taskData.tag
-                });
+                savedTask = await taskService.updateTask(taskData.id, apiData);
                 
-                // Optimistic update
+                // Optimistic update - handle both API and code property names
                 setTasks(prevTasks => 
-                    prevTasks.map(task => task.id === taskData.id ? savedTask : task)
+                    prevTasks.map(task => {
+                        if (task.id === taskData.id) {
+                            return {
+                                ...task,
+                                ...savedTask,
+                                // Ensure we have both property versions for UI compatibility
+                                dueDate: savedTask.duedate || savedTask.dueDate,
+                                duedate: savedTask.duedate || savedTask.dueDate,
+                                completed: savedTask.is_completed || savedTask.completed,
+                                is_completed: savedTask.is_completed || savedTask.completed,
+                                completedAt: savedTask.completed_at || savedTask.completedAt,
+                                completed_at: savedTask.completed_at || savedTask.completedAt
+                            };
+                        }
+                        return task;
+                    })
                 );
                 
                 toast.success('Task updated successfully');
             } else {
                 // Create new task
-                savedTask = await taskService.createTask({
-                    title: taskData.title,
-                    description: taskData.description,
-                    dueDate: taskData.dueDate,
-                    priority: taskData.priority,
-                    tag: taskData.tag
-                });
+                savedTask = await taskService.createTask(apiData);
+                
+                // Ensure the saved task has both property versions for UI compatibility
+                const normalizedTask = {
+                    ...savedTask,
+                    dueDate: savedTask.duedate || savedTask.dueDate,
+                    duedate: savedTask.duedate || savedTask.dueDate,
+                    completed: savedTask.is_completed || savedTask.completed,
+                    is_completed: savedTask.is_completed || savedTask.completed,
+                    completedAt: savedTask.completed_at || savedTask.completedAt,
+                    completed_at: savedTask.completed_at || savedTask.completedAt
+                };
                 
                 // Optimistic update
-                setTasks(prevTasks => [...prevTasks, savedTask]);
+                setTasks(prevTasks => [...prevTasks, normalizedTask]);
                 
                 toast.success('Task created successfully');
             }
@@ -183,24 +229,34 @@ const Calendar = ({ onOpenSidebar }) => {
         }
     };
 
+    // Updated to use correct property names
     const handleToggleCompletion = async (taskId, currentStatus) => {
         try {
             const newCompletionStatus = !currentStatus;
             
-            // Optimistic update
+            // Optimistic update with both property versions
             setTasks(prevTasks => prevTasks.map(task => {
                 if (task.id === taskId) {
+                    const now = new Date().toISOString();
                     return {
                         ...task,
+                        // Update both property versions for UI compatibility
+                        is_completed: newCompletionStatus,
                         completed: newCompletionStatus,
-                        completedAt: newCompletionStatus ? new Date().toISOString() : null
+                        completed_at: newCompletionStatus ? now : null,
+                        completedAt: newCompletionStatus ? now : null
                     };
                 }
                 return task;
             }));
             
+            // Use the API's expected property name
+            const updateData = {
+                is_completed: newCompletionStatus
+            };
+            
             // Make the API call
-            await taskService.toggleTaskCompletion(taskId, newCompletionStatus);
+            await taskService.updateTask(taskId, updateData);
             
             toast.success(`Task marked as ${newCompletionStatus ? 'completed' : 'pending'}`);
         } catch (error) {
@@ -295,10 +351,18 @@ const Calendar = ({ onOpenSidebar }) => {
                     <div className='grid grid-cols-7'>
                         {calendarDays.map(({ date, isDifferentMonth }) => {
                             const dateStr = formatDate(date);
-                            // Filter tasks for this day - checking if dueDate starts with the current date string 
+                            // Updated filtering to handle both property naming conventions
                             const tasksForDay = tasks.filter(t => {
-                                const taskDate = t.dueDate ? getDateString(t.dueDate) : '';
-                                return taskDate === dateStr && !t.completed;
+                                if (!t) return false;
+                                
+                                // Handle different property names (duedate from API vs dueDate in code)
+                                const taskDate = t.duedate ? getDateString(t.duedate) : 
+                                                t.dueDate ? getDateString(t.dueDate) : '';
+                                
+                                // Handle different property names (is_completed from API vs completed in code)
+                                const isCompleted = t.is_completed || t.completed;
+                                
+                                return taskDate === dateStr && !isCompleted;
                             });
                             
                             const isToday = dateStr === todayFormatted;
@@ -337,9 +401,11 @@ const Calendar = ({ onOpenSidebar }) => {
     );
 };
 
+// Updated to handle both property naming conventions
 const TaskChip = ({ task, onClick }) => {
-    // Extract time from ISO date string
-    const timeDisplay = task.dueDate ? formatTimeFromISO(task.dueDate) + ' · ' : '';
+    // Extract time from ISO date string, handling both property names
+    const dueDate = task.duedate || task.dueDate;
+    const timeDisplay = dueDate ? formatTimeFromISO(dueDate) + ' · ' : '';
 
     return (
         <div
@@ -354,6 +420,7 @@ const TaskChip = ({ task, onClick }) => {
     );
 };
 
+// Updated to handle both property naming conventions
 const TaskModal = ({ task, date, onSave, onDelete, onToggleCompletion, onClose }) => {
     const isEditMode = !!task;
     
@@ -369,22 +436,33 @@ const TaskModal = ({ task, date, onSave, onDelete, onToggleCompletion, onClose }
         completed: false
     });
 
-    // Initialize form when task or date changes
+    // Initialize form when task or date changes - handle both property naming conventions
     useEffect(() => {
         if (isEditMode && task) {
             // Parse date and time from dueDate for editing
             let dateValue = date || formatDate(new Date());
             let timeValue = '';
             
-            if (task.dueDate) {
-                const dueDate = new Date(task.dueDate);
-                dateValue = formatDate(dueDate);
-                
-                // Format time as HH:MM for input
-                const hours = String(dueDate.getHours()).padStart(2, '0');
-                const minutes = String(dueDate.getMinutes()).padStart(2, '0');
-                timeValue = `${hours}:${minutes}`;
+            // Handle both duedate and dueDate property names
+            const dueDateValue = task.duedate || task.dueDate;
+            
+            if (dueDateValue) {
+                try {
+                    const dueDate = new Date(dueDateValue);
+                    dateValue = formatDate(dueDate);
+                    
+                    // Format time as HH:MM for input
+                    const hours = String(dueDate.getHours()).padStart(2, '0');
+                    const minutes = String(dueDate.getMinutes()).padStart(2, '0');
+                    timeValue = `${hours}:${minutes}`;
+                } catch (e) {
+                    console.warn('Error parsing date:', dueDateValue, e);
+                }
             }
+            
+            // Handle both is_completed/completed and completed_at/completedAt property names
+            const isCompleted = task.is_completed || task.completed || false;
+            const completionTime = task.completed_at || task.completedAt;
             
             setFormData({
                 id: task.id,
@@ -394,7 +472,8 @@ const TaskModal = ({ task, date, onSave, onDelete, onToggleCompletion, onClose }
                 time: timeValue,
                 priority: task.priority || 'medium',
                 tag: task.tag || 'work',
-                completed: task.completed || false
+                completed: isCompleted,
+                completedAt: completionTime
             });
         } else {
             setFormData({
@@ -427,15 +506,21 @@ const TaskModal = ({ task, date, onSave, onDelete, onToggleCompletion, onClose }
         
         let combinedDueDate = null;
         if (dueDate) {
-            if (time) {
-                // Combine date and time into ISO format
-                const [year, month, day] = dueDate.split('-');
-                const [hours, minutes] = time.split(':');
-                combinedDueDate = new Date(year, month - 1, day, hours, minutes).toISOString();
-            } else {
-                // Use only date with default time (beginning of day)
-                const [year, month, day] = dueDate.split('-');
-                combinedDueDate = new Date(year, month - 1, day).toISOString();
+            try {
+                if (time) {
+                    // Combine date and time into ISO format
+                    const [year, month, day] = dueDate.split('-');
+                    const [hours, minutes] = time.split(':');
+                    combinedDueDate = new Date(year, month - 1, day, hours, minutes).toISOString();
+                } else {
+                    // Use only date with default time (beginning of day)
+                    const [year, month, day] = dueDate.split('-');
+                    combinedDueDate = new Date(year, month - 1, day).toISOString();
+                }
+            } catch (e) {
+                console.warn('Error creating date:', dueDate, time, e);
+                // Fallback to just the date string if there's an error
+                combinedDueDate = dueDate;
             }
         }
         
@@ -447,7 +532,9 @@ const TaskModal = ({ task, date, onSave, onDelete, onToggleCompletion, onClose }
 
     const handleToggle = () => {
         if (isEditMode) {
-            onToggleCompletion(task.id, task.completed);
+            // For editing, use the API compatible is_completed/completed property
+            const currentStatus = task.is_completed || task.completed || false;
+            onToggleCompletion(task.id, currentStatus);
         } else {
             setFormData(prev => ({
                 ...prev,
@@ -568,9 +655,9 @@ const TaskModal = ({ task, date, onSave, onDelete, onToggleCompletion, onClose }
                             className='mr-2' 
                         />
                         <label htmlFor='taskCompleted' className='text-sm font-medium text-gray-700'>Mark as completed</label>
-                        {isEditMode && task.completed && task.completedAt && (
+                        {isEditMode && (formData.completed || formData.is_completed) && (formData.completedAt || formData.completed_at) && (
                             <span className='ml-4 text-xs text-green-500'>
-                                Completed at: {new Date(task.completedAt).toLocaleString()}
+                                Completed at: {new Date(formData.completedAt || formData.completed_at).toLocaleString()}
                             </span>
                         )}
                     </div>

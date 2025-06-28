@@ -38,7 +38,7 @@ function App() {
     {
       path: '/calendar',
       element: <>
-        <CalPlusNav></CalPlusNav>
+      <CalPlusNav></CalPlusNav>
       </>
     },
     {

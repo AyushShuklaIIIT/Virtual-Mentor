@@ -14,9 +14,9 @@ const TopBar = ({onOpenSidebar}) => {
         </div>
 
         <div className='flex items-center space-x-4'>
-            <div className='flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm'>
-                <span className='w-2 h-2 bg-green-500 rounded-full mr-2'></span>
-                Online
+            <div className={`flex items-center px-3 py-1 ${navigator.onLine ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-400'} rounded-full text-sm`}>
+                <span className={`w-2 h-2 ${navigator.onLine ? 'bg-green-500' : 'bg-gray-400'} rounded-full mr-2`}></span>
+                <span>{navigator.onLine ? 'Online' : 'Offline'}</span>
             </div>
 
             <button className='relative text-[#64748b] hover:text-[#334155]'>
