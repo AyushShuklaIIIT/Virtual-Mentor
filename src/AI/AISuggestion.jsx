@@ -1,82 +1,215 @@
-import React, { useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import './ai.css'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLightbulb } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faLightbulb, faRefresh, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import { faClock } from '@fortawesome/free-regular-svg-icons';
+import taskService from '../api/taskService';
+import HamburgerIcon from '../SVGs/HamburgerIcon';
 
-const AISuggestion = () => {
+const AISuggestion = ({ onOpenSidebar }) => {
+  // State management
+  const [currentSuggestion, setCurrentSuggestion] = useState('');
+  const [previousSuggestions, setPreviousSuggestions] = useState([]);
 
-  useEffect(() => {
-    setTimeout(() => {
-      document.getElementById('loading').classList.add('hidden');
-      document.getElementById('suggestion-text').classList.remove('hidden');
-    }, 1500);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingNew, setIsLoadingNew] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [isAddingToNotes, setIsAddingToNotes] = useState(false);
+  const [error, setError] = useState(null);
+  const [hasData, setHasData] = useState(false);
 
-    const toggleBtn = document.getElementById('toggle-history');
-    const historyContainer = document.getElementById('history-container');
-    const toggleText = document.getElementById('toggle-text');
-    const toggleIcon = document.getElementById('toggle-icon');
+  // Memoized values
+  const toggleButtonText = useMemo(() => showHistory ? 'Hide' : 'Show', [showHistory]);
 
-    toggleBtn.addEventListener('click', () => {
-      historyContainer.classList.toggle('hidden');
-      if(historyContainer.classList.contains('hidden')) {
-        toggleText.textContent = 'Show';
-        toggleIcon.setAttribute('d', 'M5 15l7-7 7 7');
+  // Get formatted timestamp
+  const getFormattedTimestamp = useCallback(() => {
+    const now = new Date();
+    const today = new Date().toDateString();
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    const suggestionDate = now.toDateString();
+
+    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    if (suggestionDate === today) {
+      return `Today, ${timeString}`;
+    } else if (suggestionDate === yesterday) {
+      return `Yesterday, ${timeString}`;
+    } else {
+      return now.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+  }, []);
+
+  // Fetch suggestions from API
+  const fetchSuggestions = useCallback(async (isRetry = false) => {
+    try {
+      setError(null);
+      if (!isRetry) {
+        setIsLoading(true);
       } else {
-        toggleText.textContent = 'Hide';
-        toggleIcon.setAttribute('d', 'M5 9l-7 7 7-7');
+        setIsLoadingNew(true);
+      }
+
+      const response = await taskService.getSuggestions();
+
+      // Handle the correct API response format: { suggestions: "text" }
+      if (typeof response?.suggestions === 'string') {
+        const suggestionText = response.suggestions.trim();
+        setCurrentSuggestion(suggestionText);
+        setHasData(true);
+      } else {
+        throw new Error('Invalid response format from server');
+      }
+
+    } catch (err) {
+      console.error('Error fetching suggestions:', err);
+      setError(err.message || 'Failed to fetch suggestions from server');
+      setHasData(false);
+      setCurrentSuggestion('');
+    } finally {
+      setIsLoading(false);
+      setIsLoadingNew(false);
+    }
+  }, []);
+
+  // Get another suggestion
+  const getAnotherSuggestion = useCallback(async () => {
+    if (isLoadingNew) return;
+
+    // Add current suggestion to previous suggestions before getting a new one
+    if (currentSuggestion) {
+      const newSuggestion = {
+        text: currentSuggestion,
+        timestamp: getFormattedTimestamp(),
+        id: Date.now()
+      };
+
+      setPreviousSuggestions(prev => [newSuggestion, ...prev.slice(0, 9)]); // Keep only last 10
+    }
+
+    // Fetch new suggestion
+    await fetchSuggestions(true);
+  }, [currentSuggestion, fetchSuggestions, getFormattedTimestamp, isLoadingNew]);
+
+  // Toggle history visibility
+  const toggleHistory = useCallback(() => {
+    setShowHistory(prev => !prev);
+  }, []);
+
+  // Add to notes functionality
+  const addToNotes = useCallback(() => {
+    if (!currentSuggestion || isAddingToNotes) return;
+
+    setIsAddingToNotes(true);
+
+    // Add current suggestion to previous suggestions
+    const newSuggestion = {
+      text: currentSuggestion,
+      timestamp: getFormattedTimestamp(),
+      id: Date.now(),
+      addedToNotes: true
+    };
+
+    setPreviousSuggestions(prev => {
+      // Check if this suggestion is already in history
+      const exists = prev.some(s => s.text === currentSuggestion);
+      if (exists) {
+        // Update existing entry to mark as added to notes
+        return prev.map(s =>
+          s.text === currentSuggestion
+            ? { ...s, addedToNotes: true, timestamp: getFormattedTimestamp() }
+            : s
+        );
+      } else {
+        // Add new entry
+        return [newSuggestion, ...prev.slice(0, 9)]; // Keep only last 10
       }
     });
 
-    document.getElementById('get-another').addEventListener('click', () => {
-      const suggestions = [
-        "You tend to complete most tasks after 3 PM - try scheduling deep work then.",
-        "Your meeting-free blocks on Wednesday mornings show 30% higher productivity.",
-        "Consider time-blocking your calendar for focused work sessions.",
-        "You've been consistently achieving your goals before deadlines this month.",
-        "Your productivity peaks after your morning coffee break around 10:30 AM."
-      ];
+    // Reset button state after 2 seconds
+    setTimeout(() => {
+      setIsAddingToNotes(false);
+    }, 2000);
+  }, [currentSuggestion, getFormattedTimestamp, isAddingToNotes]);
 
-      // show loading
-      document.getElementById('suggestion-text').classList.add('hidden');
-      document.getElementById('loading').classList.remove('hidden');
+  // Retry fetching suggestions
+  const retrySuggestions = useCallback(() => {
+    fetchSuggestions(true);
+  }, [fetchSuggestions]);
 
-      setTimeout(() => {
-        const randomSuggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
-        document.getElementById('suggestion-text').textContent = `"${randomSuggestion}"`;
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('suggestion-text').classList.remove('hidden');
-      }, 1000);
-    });
+  // Initial load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchSuggestions();
+    }, 1500); // Maintain the original loading experience
 
-    // Add to notes
-    document.getElementById('add-notes').addEventListener('click', () => {
-      this.classList.remove('bg-white');
-      this.classList.add('bg-purple-50');
-      this.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-      </svg>
-      Added to notes
-      `;
-      setTimeout(() => {
-        this.classList.remove('bg-purple-50');
-        this.classList.add('bg-white');
-        this.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 00" />
-        </svg>
-        Add to Task Notes
-        `
-      }, 2000);
-    })
-  }, [])
-  
+    return () => clearTimeout(timer);
+  }, [fetchSuggestions]);
+
+  // Loading component
+  const LoadingDots = () => (
+    <div className="typing-dots text-gray-500 text-lg">
+      <span className="typing-text">Thinking</span>
+      <span className="dots">
+        <span className="dot">.</span>
+        <span className="dot">.</span>
+        <span className="dot">.</span>
+      </span>
+    </div>
+  );
+
+  // Error component
+  const ErrorDisplay = () => (
+    <div className="error-container text-center p-4">
+      <FontAwesomeIcon icon={faExclamationTriangle} className="h-8 w-8 text-yellow-500 mb-2" />
+      <p className="text-gray-600 mb-4">
+        {error}
+      </p>
+      <button
+        onClick={retrySuggestions}
+        disabled={isLoadingNew}
+        className="retry-button px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+      >
+        {isLoadingNew ? 'Retrying...' : 'Try Again'}
+      </button>
+    </div>
+  );
+
+  // No data component
+  const NoDataDisplay = () => (
+    <div className="no-data-container text-center p-4">
+      <FontAwesomeIcon icon={faLightbulb} className="h-8 w-8 text-gray-400 mb-2" />
+      <p className="text-gray-600 mb-4">
+        No suggestions available at the moment.
+      </p>
+      <button
+        onClick={retrySuggestions}
+        disabled={isLoadingNew}
+        className="retry-button px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+      >
+        {isLoadingNew ? 'Loading...' : 'Get Suggestions'}
+      </button>
+    </div>
+  );
 
   return (
-    <div className='flex flex-col items-center justify-center p-4 md:p-8'>
+    <div className='flex flex-col items-center justify-center p-4 md:p-8 ai-body min-h-screen flex-1 overflow-y-auto'>
+      <button id='open-sidebar' className='absolute top-4 left-4 md:hidden mr-4 text-[#64748b] hover:text-[#334155]' onClick={onOpenSidebar}>
+        <HamburgerIcon />
+      </button>
       <div className='container max-w-3xl mx-auto'>
         {/* Header */}
         <header className='text-center mb-8'>
-          <h1 className='text-2xl md:text-3xl font-semibold text-gray-800 mb-2'>Your AI Mentor Suggests...</h1>
-          <p className='text-gray-500 text-sm md:text-base'>Personalized insights to help you grow</p>
+          <h1 className='text-2xl md:text-3xl font-semibold text-gray-800 mb-2'>
+            Your AI Mentor Suggests...
+          </h1>
+          <p className='text-gray-500 text-sm md:text-base'>
+            Personalized insights to help you grow
+          </p>
         </header>
 
         {/* Main Suggestion Card */}
@@ -87,61 +220,112 @@ const AISuggestion = () => {
               <div className='w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-purple-400 to-indigo-600 flex items-center justify-center'>
                 <FontAwesomeIcon icon={faLightbulb} className='h-6 w-6 md:h-8 md:w-8 text-white' />
               </div>
-              <div className='absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white'></div>
+              <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${hasData ? 'bg-green-400 pulse' : 'bg-gray-400'
+                }`}></div>
             </div>
 
             {/* Suggestion Text */}
-            <div id='suggestion-card' className='suggestion-card glass rounded-2xl p-6 md:p-8 w-full max-w-2xl shadow-lg'>
-              <div id='loading' className='typing-dots text-gray-500 text-lg'>Thinking</div>
-              <blockquote id='suggestion-text' className='text-lg md:text-xl text-gray-700 font-medium leading-relaxed hidden fade-in'>
-                "To enhance your productivity, consider setting specific time blocks for focused work. This can help you minimize distractions and maximize your output. Remember to take short breaks to recharge. Use Pomodoro technique for effective time management."
-              </blockquote>
+            <div className='suggestion-card glass rounded-2xl p-6 md:p-8 w-full max-w-2xl shadow-lg'>
+              {isLoading ? (
+                <LoadingDots />
+              ) : error ? (
+                <ErrorDisplay />
+              ) : !hasData || !currentSuggestion ? (
+                <NoDataDisplay />
+              ) : (
+                <blockquote className={`text-lg md:text-xl text-gray-700 font-medium leading-relaxed transition-opacity duration-500 ${isLoadingNew ? 'opacity-50' : 'opacity-100'}`}>
+                  "{currentSuggestion}"
+                </blockquote>
+              )}
+
+              {isLoadingNew && hasData && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 rounded-2xl">
+                  <LoadingDots />
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className='flex flex-wrap justify-center gap-3 mt-4'>
-            <button id='get-another' className='flex items-center px-4 py-2 bg-white border border-gray-200 rounded-full shadow-sm hover:bg-gray-50 transition-colors'>
-              <FontAwesomeIcon icon={faLightbulb} className='h-5 w-5 text-gray-600 mr-2' />
-              Get Another Suggestion
-            </button>
-            <button id='add-notes' className='flex items-center px-4 py-2 bg-white border border-gray-200 rounded-full shadow-sm hover:bg-gray-50 transition-colors'>
-              <FontAwesomeIcon icon={faLightbulb} className='h-5 w-5 text-gray-600 mr-2' />
-              Add to Task Notes
-            </button>
-          </div>
+          {/* Action Buttons - Only show when we have data */}
+          {hasData && currentSuggestion && (
+            <div className='flex flex-wrap justify-center gap-3 mt-4'>
+              <button
+                onClick={getAnotherSuggestion}
+                disabled={isLoadingNew || isLoading}
+                className='action-button flex items-center px-4 py-2 bg-white border border-gray-200 rounded-full shadow-sm hover:bg-gray-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
+              >
+                <FontAwesomeIcon
+                  icon={faRefresh}
+                  className={`h-5 w-5 text-blue-600 mr-2 ${isLoadingNew ? 'animate-spin' : ''}`}
+                />
+                Get Another Suggestion
+              </button>
+
+              <button
+                onClick={addToNotes}
+                disabled={isAddingToNotes || isLoading}
+                className={`action-button flex items-center px-4 py-2 border border-gray-200 rounded-full shadow-sm transition-all duration-200 ${isAddingToNotes
+                    ? 'bg-purple-50 text-purple-700'
+                    : 'bg-white hover:bg-gray-50'
+                  }`}
+              >
+                {isAddingToNotes ? (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Added to notes
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faEdit} className='h-5 w-5 text-purple-600 mr-2' />
+                    Add to Task Notes
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* History Section */}
-        <div className='mt-12 mb-8'>
-          <div className='flex items-center justify-between mb-4'>
-            <h2 className='text-lg font-medium text-gray-700 flex items-center'>
-              <FontAwesomeIcon icon={faLightbulb} className='h-5 w-5 text-gray-600 mr-2' />
-              Previous Suggestions
-            </h2>
-            <button id='toggle-history' className='text-sm text-purple-600 hover:text-purple-800 transition-colors'>
-              <span id='toggle-text'>Hide</span>
-              <svg xmlns='http://www.w3.org/2000/svg' className='h-4 w-4 inline ml-1' fill='none' viewBox='0 0 24 24' stroke="currentColor">
-                <path id='toggle-icon' strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
-              </svg>
-            </button>
-          </div>
+        {/* History Section - Only show when we have previous suggestions */}
+        {previousSuggestions.length > 0 && (
+          <div className='mt-12 mb-8'>
+            <div className='flex items-center justify-between mb-4'>
+              <h2 className='text-lg font-medium text-gray-700 flex items-center'>
+                <FontAwesomeIcon icon={faClock} className='h-5 w-5 text-purple-600 mr-2' />
+                Previous Suggestions ({previousSuggestions.length})
+              </h2>
+              <button
+                onClick={toggleHistory}
+                className='toggle-button text-sm text-purple-600 hover:text-purple-800 transition-colors'
+              >
+                <span>{toggleButtonText}</span>
+                <svg xmlns='http://www.w3.org/2000/svg' className={`h-4 w-4 inline ml-1 transition-transform duration-200 ${showHistory ? 'rotate-180' : ''}`} fill='none' viewBox='0 0 24 24' stroke="currentColor">
+                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
+                </svg>
+              </button>
+            </div>
 
-          <div id='history-container' className='relative timeline pl-8'>
-            <div className='timeline-item relative mb-4 glass rounded-lg p-4 suggestion-card'>
-              <p className='text-gray-700'>"Consider taking short 5-minute breaks between tasks to maintain focus throughout the day."</p>
-              <p className='text-xs text-gray-400 mt-2'>Today, 10:45 AM</p>
-            </div>
-            <div className='timeline-item relative mb-4 glass rounded-lg p-4 suggestion-card'>
-              <p className='text-gray-700'>"Your calendar shows frequent context switching. Try grouping similar tasks together."</p>
-              <p className='text-xs text-gray-400 mt-2'>Yesterday, 3:22 PM</p>
-            </div>
-            <div className='timeline-item relative mb-4 glass rounded-lg p-4 suggestion-card'>
-              <p className='text-gray-700'>"Based on your productivity patterns, Mondays might be better for planning rather than execution."</p>
-              <p className='text-xs text-gray-400 mt-2'>May 15, 2:10 PM</p>
+            <div className={`history-container transition-all duration-300 overflow-hidden ${showHistory ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
+              }`}>
+              <div className='relative timeline pl-8'>
+                {previousSuggestions.map((suggestion, index) => (
+                  <div key={suggestion.id} className={`timeline-item relative mb-4 glass rounded-lg p-4 suggestion-card slide-in ${suggestion.addedToNotes ? 'border-l-4 border-purple-500' : ''}`} style={{ animationDelay: `${index * 0.1}s` }}>
+                    <div className='flex items-start justify-between'>
+                      <p className='text-gray-700 flex-1'>"{suggestion.text}"</p>
+                      {suggestion.addedToNotes && (
+                        <span className='ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full'>
+                          Added to notes
+                        </span>
+                      )}
+                    </div>
+                    <p className='text-xs text-gray-400 mt-2'>{suggestion.timestamp}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )

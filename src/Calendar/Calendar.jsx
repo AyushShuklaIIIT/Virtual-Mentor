@@ -262,7 +262,7 @@ const Calendar = ({ onOpenSidebar }) => {
     }
 
     return (
-        <div className='flex-1 calendar-body min-h-screen flex flex-col'>
+        <div className='flex-1 calendar-body min-h-screen flex flex-col overflow-y-auto'>
             <header className='bg-white shadow-sm py-3 px-4 md:px-6 flex justify-between items-center'>
                 <button id='open-sidebar' className='md:hidden mr-4 text-[#64748b] hover:text-[#334155]' onClick={onOpenSidebar}>
                     <HamburgerIcon />

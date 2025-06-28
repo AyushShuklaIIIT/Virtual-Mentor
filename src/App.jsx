@@ -9,7 +9,7 @@ import InsightNav from './Insights/InsightNav'
 import SettingsNav from "./Settings/SettingsNav"
 import Profile from "./Profile/Profile"
 import Team from "./TeamManagement/Team"
-import AISuggestion from "./AI/AISuggestion"
+import AINav from "./AI/AINav"
 
 function App() {
   const router = createBrowserRouter([
@@ -60,7 +60,7 @@ function App() {
     },
     {
       path: '/ai-suggestions',
-      element: <><AISuggestion></AISuggestion></>
+      element: <><AINav></AINav></>
     }
   ])
   return (
