@@ -710,50 +710,43 @@ const Tasks = ({ onOpenSidebar }) => {
   };
 
   const handleSaveTask = async (taskData) => {
-    try {
-      let savedTask;
+  try {
+    
+    if (taskData.id) {
+      // Update existing task
+      await taskService.updateTask(taskData.id, {
+        title: taskData.title,
+        description: taskData.description,
+        duedate: taskData.duedate,
+        priority: taskData.priority,
+        tag: taskData.tag
+      });
       
-      if (taskData.id) {
-        // Update existing task
-        savedTask = await taskService.updateTask(taskData.id, {
-          title: taskData.title,
-          description: taskData.description,
-          duedate: taskData.duedate,
-          priority: taskData.priority,
-          tag: taskData.tag
-        });
-        
-        // Transform the response and update local state
-        const transformedTask = transformTask(savedTask);
-        setTasks(prevTasks => prevTasks.map(task => 
-          task.id === taskData.id ? transformedTask : task
-        ));
-        
-        toast.success('Task updated successfully');
-      } else {
-        // Create new task
-        savedTask = await taskService.createTask({
-          title: taskData.title,
-          description: taskData.description,
-          duedate: taskData.duedate,
-          priority: taskData.priority,
-          tag: taskData.tag
-        });
-        
-        // Transform the response and add to local state
-        const transformedTask = transformTask(savedTask);
-        setTasks(prevTasks => [...prevTasks, transformedTask]);
-        
-        toast.success('Task created successfully');
-      }
+      toast.success('Task updated successfully');
+    } else {
+      // Create new task
+      await taskService.createTask({
+        title: taskData.title,
+        description: taskData.description,
+        duedate: taskData.duedate,
+        priority: taskData.priority,
+        tag: taskData.tag
+      });
       
-      setModalOpen(false);
-    } catch (error) {
-      toast.error('Failed to save task. Please try again.');
-      console.error('Error saving task:', error);
-      throw error; // Re-throw to handle in modal
+      toast.success('Task created successfully');
     }
-  };
+    
+    setModalOpen(false);
+    
+    // Refresh the task list from the API
+    await fetchTasks();
+    
+  } catch (error) {
+    toast.error('Failed to save task. Please try again.');
+    console.error('Error saving task:', error);
+    throw error;
+  }
+};
 
   // Filter dropdown items
   const dateFilterItems = [
