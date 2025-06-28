@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import './ai.css'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLightbulb } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faLightbulb, faRefresh } from '@fortawesome/free-solid-svg-icons';
 
 const AISuggestion = () => {
 
@@ -72,7 +72,7 @@ const AISuggestion = () => {
   
 
   return (
-    <div className='flex flex-col items-center justify-center p-4 md:p-8'>
+    <div className='flex flex-col items-center justify-center p-4 md:p-8 ai-body min-h-screen'>
       <div className='container max-w-3xl mx-auto'>
         {/* Header */}
         <header className='text-center mb-8'>
@@ -103,11 +103,11 @@ const AISuggestion = () => {
           {/* Action Buttons */}
           <div className='flex flex-wrap justify-center gap-3 mt-4'>
             <button id='get-another' className='flex items-center px-4 py-2 bg-white border border-gray-200 rounded-full shadow-sm hover:bg-gray-50 transition-colors'>
-              <FontAwesomeIcon icon={faLightbulb} className='h-5 w-5 text-gray-600 mr-2' />
+              <FontAwesomeIcon icon={faRefresh} className='h-5 w-5 text-blue-600 mr-2' />
               Get Another Suggestion
             </button>
             <button id='add-notes' className='flex items-center px-4 py-2 bg-white border border-gray-200 rounded-full shadow-sm hover:bg-gray-50 transition-colors'>
-              <FontAwesomeIcon icon={faLightbulb} className='h-5 w-5 text-gray-600 mr-2' />
+              <FontAwesomeIcon icon={faEdit} className='h-5 w-5 text-pink-600 mr-2' />
               Add to Task Notes
             </button>
           </div>
