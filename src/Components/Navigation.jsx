@@ -9,7 +9,7 @@ const Navigation = ({setSidebarOpen}) => {
       <div className='max-w-7xl mx-auto flex justify-between items-center'>
         <div className='flex items-center space-x-2'>
             <Fig1></Fig1>
-            <span className='font-bold text-xl'>Intelligent Task Mentor</span>
+            <span className='font-bold text-xl'>Virtual Mentor</span>
         </div>
 
         <div className='hidden md:flex items-center space-x-8'>
