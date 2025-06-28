@@ -3,7 +3,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronRight, faPlus, faChevronLeft, faTimes, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import './calendar.css';
 import HamburgerIcon from '../SVGs/HamburgerIcon';
-import { NavLink } from 'react-router-dom';
 import taskService from '../api/taskService';
 import { toast } from 'react-toastify';
 import ProfileDropdown from '../Components/ProfileDropdown';

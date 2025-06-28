@@ -1,7 +1,6 @@
 import React from 'react'
 import NotificationBell from '../SVGs/NotificationBell'
 import HamburgerIcon from '../SVGs/HamburgerIcon'
-import { NavLink } from 'react-router-dom'
 import ProfileDropdown from '../Components/ProfileDropdown'
 
 const TopBar = ({onOpenSidebar}) => {

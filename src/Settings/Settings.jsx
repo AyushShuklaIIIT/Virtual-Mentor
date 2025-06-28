@@ -16,7 +16,6 @@ import {
 import { faCopyright } from '@fortawesome/free-regular-svg-icons';
 import './settings.css';
 import HamburgerIcon from '../SVGs/HamburgerIcon';
-import { NavLink } from 'react-router-dom';
 import ProfileDropdown from '../Components/ProfileDropdown';
 
 /** Section Card with collapsible functionality */

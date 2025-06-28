@@ -6,7 +6,6 @@ import {
   faSearch, faTimes, faTrash, faUndo, faSpinner
 } from '@fortawesome/free-solid-svg-icons';
 import HamburgerIcon from '../SVGs/HamburgerIcon';
-import { NavLink } from 'react-router-dom';
 import taskService from '../api/taskService.js';
 import { toast } from 'react-toastify';
 import ProfileDropdown from '../Components/ProfileDropdown.jsx';
