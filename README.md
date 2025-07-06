@@ -1,6 +1,6 @@
 # Virtual Mentor - Task Management App
 
-*Virtual Mentor* is an advanced task management application that helps users efficiently organize their day-to-day tasks. Unlike typical task apps, Virtual Mentor includes several standout features like *Progressive Web App (PWA) support, **Background Sync, and **AI-powered task suggestions*.
+*Virtual Mentor* is an advanced task management application that helps users efficiently organize their day-to-day tasks. Unlike typical task apps, Virtual Mentor includes several standout features like *Progressive Web App (PWA) support*, **Background Sync**, and ***AI-powered task suggestions***.
 
 ---
 
